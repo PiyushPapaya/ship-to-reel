@@ -9,11 +9,16 @@
   },
   "scripts": {
     "validate": "node engine/validate.mjs",
-    "test": "node engine/validate.mjs"
+    "test": "node engine/validate.mjs",
+    "assemble": "node engine/assemble.mjs",
+    "render": "node engine/render.mjs",
+    "build": "node engine/assemble.mjs && node engine/render.mjs"
+  },
+  "dependencies": {
+    "gsap": "^3.13.0"
   },
   "devDependencies": {
     "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
     "yaml": "^2.6.1"
   }
 }

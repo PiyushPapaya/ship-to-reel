@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>{{ID}}</title>
+    <!-- GSAP vendored locally by assemble.mjs (no CDN → deterministic, no SRI/network risk). -->
+    <script src="./gsap.min.js"></script>
+    <style>
+      :root {
+{{TOKENS}}
+        --safe-top: {{SAFE_TOP}}px;
+        --safe-bottom: {{SAFE_BOTTOM}}px;
+        --safe-right: {{SAFE_RIGHT}}px;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: #000;
+        font-family: var(--font);
+        color: var(--ink);
+      }
+      #root {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+      }
+      /* Each scene is a full-bleed child clip; the fill lives on the clip, never on #root. */
+      .scene {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: var(--paper);
+      }
+      .stage {
+        position: absolute;
+        top: var(--safe-top);
+        right: var(--safe-right);
+        bottom: var(--safe-bottom);
+        left: 64px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 28px;
+      }
+      .eyebrow {
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      .headline {
+        font-size: 92px;
+        font-weight: 800;
+        line-height: 1.02;
+        letter-spacing: -0.02em;
+        margin: 0;
+      }
+      .body {
+        font-size: 46px;
+        font-weight: 500;
+        line-height: 1.25;
+        color: #3f3f46;
+        margin: 0;
+      }
+      .card {
+        background: var(--surface);
+        border: 2px solid var(--line);
+        border-radius: var(--radius-card, 40px);
+        padding: 44px 48px;
+      }
+      .metric {
+        font-size: 200px;
+        font-weight: 800;
+        line-height: 0.9;
+        letter-spacing: -0.03em;
+        color: var(--accent);
+        margin: 0;
+      }
+      .code {
+        font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 40px;
+        line-height: 1.5;
+        white-space: pre;
+      }
+      .code .file { color: #52525b; font-size: 32px; display: block; margin-bottom: 20px; }
+      .code .del { color: #c62828; display: block; }
+      .code .add { color: #1b7a44; display: block; }
+      .outro {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+        text-align: center;
+      }
+      .outro .handle { font-size: 56px; font-weight: 800; }
+      /* Persistent brand watermark — no class="clip", so it stays visible the whole video. */
+      #watermark {
+        position: absolute;
+        left: 48px;
+        bottom: calc(var(--safe-bottom) - 48px);
+        font-size: 34px;
+        font-weight: 700;
+        color: var(--ink);
+        opacity: {{WATERMARK_OPACITY}};
+        z-index: 50;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-width="1080"
+      data-height="1920"
+      data-duration="{{DURATION}}"
+      data-fps="30"
+    >
+{{CLIPS}}
+      <div id="watermark">{{WATERMARK_TEXT}}</div>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+{{TIMELINE_BODY}}
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
