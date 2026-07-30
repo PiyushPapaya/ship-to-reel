@@ -1,0 +1,77 @@
+// engine/seam-gate.mjs — Phase 3 proof that the master-timeline has no hard cuts.
+// Parses the ASSEMBLED build/index.html (never trusts assemble.mjs's own math) and
+// asserts, for every adjacent scene pair:
+//   1. they actually overlap in time by a positive seam,
+//   2. the overlap sits on two different data-track-index lanes (hyperframes
+//      rejects same-track overlap, so this also catches a track-alternation bug),
+//   3. the later scene has a crossfade-in tween on its .scene-fill in the timeline body.
+// Exits non-zero on any failure — "generating is not finishing" (PLAN §5).
+//
+// Usage: node engine/seam-gate.mjs [indexHtmlPath]
+
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join, resolve } from "node:path";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const htmlPath = resolve(process.argv[2] ?? join(root, "build/index.html"));
+const html = readFileSync(htmlPath, "utf8");
+
+// --- parse every <section class="scene clip" ...> in document order -----------
+const sceneRe = /<section id="(scene-\d+-[a-z-]+)" class="scene clip" data-start="([\d.]+)" data-duration="([\d.]+)" data-track-index="(\d+)"/g;
+const scenes = [];
+for (const m of html.matchAll(sceneRe)) {
+  scenes.push({ id: m[1], start: Number(m[2]), duration: Number(m[3]), track: Number(m[4]) });
+}
+
+const results = [];
+const record = (name, ok, detail) => results.push({ name, ok, detail });
+
+record(`found ${scenes.length} scene clips`, scenes.length > 0, scenes.length ? undefined : "no <section class=\"scene clip\"> matched — did assemble.mjs run first?");
+
+for (let i = 1; i < scenes.length; i++) {
+  const prev = scenes[i - 1];
+  const cur = scenes[i];
+  const prevEnd = round1(prev.start + prev.duration);
+  const overlap = round1(prevEnd - cur.start);
+
+  record(
+    `${prev.id} -> ${cur.id}: overlaps (seam, no hard cut)`,
+    overlap > 0,
+    overlap > 0 ? undefined : `expected cur.start < prev.start+prev.duration (${prevEnd}); got cur.start=${cur.start} (overlap=${overlap})`
+  );
+
+  record(
+    `${prev.id} -> ${cur.id}: different tracks (${prev.track} vs ${cur.track})`,
+    prev.track !== cur.track,
+    prev.track !== cur.track ? undefined : `both on track ${prev.track} — hyperframes rejects same-track overlap`
+  );
+
+  const fadeRe = new RegExp(`tl\\.fromTo\\("#${cur.id} \\.scene-fill",\\s*\\{\\s*opacity:\\s*0\\s*\\}`);
+  record(
+    `${cur.id}: has a crossfade-in tween on .scene-fill`,
+    fadeRe.test(html),
+    fadeRe.test(html) ? undefined : "no tl.fromTo(...opacity:0...) found for this scene's .scene-fill"
+  );
+}
+
+report();
+
+function round1(n) {
+  return Math.round(n * 10) / 10;
+}
+
+function report() {
+  let failed = 0;
+  for (const r of results) {
+    if (r.ok) {
+      console.log(`  ✓ ${r.name}`);
+    } else {
+      failed++;
+      console.log(`  ✗ ${r.name}`);
+      if (r.detail) console.log(`    ${r.detail}`);
+    }
+  }
+  console.log(`\n${results.length - failed}/${results.length} seam checks passed`);
+  process.exit(failed ? 1 : 0);
+}

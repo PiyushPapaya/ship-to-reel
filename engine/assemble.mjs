@@ -18,6 +18,18 @@ const DEFAULT_DUR = { hook: 2.5, problem: 3.5, "code-diff": 4, result: 3, outro:
 const PACE_FACTOR = { fast: 0.8, medium: 1.0, slow: 1.25 };
 const round1 = (n) => Math.round(n * 10) / 10;
 
+// --- seams (Phase 3: master-timeline, no hard cuts) ---------------------------
+// Every scene boundary overlaps by SEAM_BY_PACE seconds: the next scene's fill
+// crossfades in on top of the (still-opaque) previous one — see seam-gate.mjs,
+// which asserts this overlap actually exists in the rendered output.
+const SEAM_BY_PACE = { fast: 0.3, medium: 0.4, slow: 0.5 };
+const MAX_SEAM_FRACTION = 0.4; // never eat more than 40% of the shorter neighbor
+
+function seamFor(pace, prevDur, nextDur) {
+  const wanted = SEAM_BY_PACE[pace] ?? 0.4;
+  return round1(Math.min(wanted, MAX_SEAM_FRACTION * Math.min(prevDur, nextDur)));
+}
+
 function sceneDuration(beat, pace) {
   const f = PACE_FACTOR[pace] ?? 1.0;
   const d = beat.dur;
@@ -56,24 +68,41 @@ export function assemble(specPath, outDir) {
   const pace = tempo?.pace ?? "medium";
   const ctx = { brand, channel, voice: spec.voice };
 
-  // Lay scenes out sequentially; total duration = sum (meta.duration range is advisory in Phase 1).
+  // Master-timeline: scenes overlap by a seam so the next scene's fill crossfades
+  // over the previous one instead of a hard cut (PLAN §4 "erzwungene Seams").
+  // Overlapping clips must sit on different tracks (hyperframes rejects same-track
+  // overlap), so consecutive scenes alternate between track 1 and 2.
+  const durs = spec.beats.map((beat) => sceneDuration(beat, pace));
   let t = 0;
   const clips = [];
   const tweens = [];
   spec.beats.forEach((beat, i) => {
-    const dur = sceneDuration(beat, pace);
+    const dur = durs[i];
+    const seam = i === 0 ? 0 : seamFor(pace, durs[i - 1], dur);
+    const start = round1(t - seam);
     const id = `scene-${i}-${beat.type}`;
     const inner = renderScene(beat, ctx);
+    const track = (i % 2) + 1;
     clips.push(
-      `      <section id="${id}" class="scene clip" data-start="${round1(t)}" data-duration="${dur}" data-track-index="1">\n` +
+      `      <section id="${id}" class="scene clip" data-start="${start}" data-duration="${dur}" data-track-index="${track}">\n` +
+        `        <div class="scene-fill">\n` +
         `        ${inner}\n` +
+        `        </div>\n` +
         `      </section>`
     );
-    // Uniform entrance: content rises + fades in shortly after the scene begins.
+    if (i === 0) {
+      // First scene has nothing to crossfade from — it's simply opaque from t=0.
+      tweens.push(`      tl.set("#${id} .scene-fill", { opacity: 1 }, 0);`);
+    } else {
+      tweens.push(
+        `      tl.fromTo("#${id} .scene-fill", { opacity: 0 }, { opacity: 1, duration: ${seam}, ease: "none" }, ${start});`
+      );
+    }
+    // Content entrance: rises + fades in once the crossfade has mostly landed.
     tweens.push(
-      `      tl.from("#${id} .anim", { opacity: 0, y: 40, duration: 0.5, stagger: 0.12, ease: "power3.out" }, ${round1(t + 0.15)});`
+      `      tl.from("#${id} .anim", { opacity: 0, y: 40, duration: 0.5, stagger: 0.12, ease: "power3.out" }, ${round1(start + seam * 0.6 + 0.1)});`
     );
-    t += dur;
+    t = start + dur;
   });
   const total = round1(t);
 

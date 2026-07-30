@@ -26,8 +26,16 @@
         height: 1920px;
         overflow: hidden;
       }
-      /* Each scene is a full-bleed child clip; the fill lives on the clip, never on #root. */
+      /* Each scene is a full-bleed clip; it stays transparent so its .scene-fill child
+         (never the clip itself — HyperFrames owns the clip's own show/hide) can crossfade
+         over the previous scene during a seam overlap. */
       .scene {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+      }
+      .scene-fill {
         position: absolute;
         inset: 0;
         display: grid;
