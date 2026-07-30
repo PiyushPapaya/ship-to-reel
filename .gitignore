@@ -1,0 +1,9 @@
+node_modules/
+*.log
+.DS_Store
+# render/build artifacts (later phases)
+out/
+dist/
+*.mp4
+*.mov
+*.webm

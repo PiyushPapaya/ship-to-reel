@@ -1,0 +1,20 @@
+{
+  "slug": "projekt-a",
+  "palette": {
+    "paper": "#ffffff",
+    "ink": "#0a0a0a",
+    "ink-inverse": "#ffffff",
+    "accent": "#5B8DEF",
+    "surface": "#f4f4f5",
+    "line": "#e5e5e5",
+    "muted": "#b3b3b3",
+    "font": "\"Inter\", system-ui, sans-serif",
+    "radius-pill": "128px",
+    "radius-chip": "40px",
+    "radius-card": "48px",
+    "shadow-badge": "0 4px 12px rgba(10, 10, 10, 0.06)"
+  },
+  "logo": "logo.svg",
+  "publishable": true,
+  "notes": "Starter brand (neutral). Copy-me template for new projects: duplicate the folder, replace the tokens, drop in logo.svg. Can be pulled automatically from Figma/website via extract-brand-pack."
+}

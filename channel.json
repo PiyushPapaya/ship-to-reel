@@ -1,0 +1,21 @@
+{
+  "handle": "@your_handle",
+  "safe_areas": {
+    "top": 220,
+    "bottom": 320,
+    "right": 120
+  },
+  "watermark": {
+    "text": "@your_handle",
+    "corner": "bottom-left",
+    "opacity": 0.7
+  },
+  "captions": {
+    "font": "\"Inter\", system-ui, sans-serif",
+    "size": 64,
+    "position": "lower-third",
+    "box": true
+  },
+  "intro_sting": "assets/sting.json",
+  "outro_card": "templates/_shell/outro/v1"
+}

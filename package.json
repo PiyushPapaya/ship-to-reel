@@ -1,0 +1,19 @@
+{
+  "name": "reel-bot",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Eigene Video-Engine: aus Projekt (Website/GitHub/Brief) markenkonsistente Reels beliebiger Laenge.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "validate": "node engine/validate.mjs",
+    "test": "node engine/validate.mjs"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "yaml": "^2.6.1"
+  }
+}

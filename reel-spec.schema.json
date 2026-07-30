@@ -1,0 +1,295 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://reel-bot.local/schema/reel-spec.schema.json",
+  "title": "reel-spec",
+  "description": "The base plate. Describes a FULLY RESOLVED reel-spec (all $ref inlined), as assemble.mjs consumes it. channel wins layout/format; brand+voice win color/font/motion/tone (the merge rule is enforced by resolve-spec.mjs, not by the schema).",
+  "type": "object",
+  "required": ["meta", "channel", "brand", "tempo", "source", "beats"],
+  "additionalProperties": false,
+  "properties": {
+    "meta": { "$ref": "#/$defs/meta" },
+    "channel": { "$ref": "#/$defs/channel" },
+    "brand": { "$ref": "#/$defs/brand" },
+    "voice": { "$ref": "#/$defs/voice" },
+    "tempo": { "$ref": "#/$defs/tempo" },
+    "source": { "$ref": "#/$defs/source" },
+    "beats": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/beat" }
+    },
+    "broll": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/broll" }
+    }
+  },
+
+  "$defs": {
+    "meta": {
+      "type": "object",
+      "required": ["id", "archetype"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$",
+          "description": "Stable, filesystem-safe identifier, e.g. projekt-a-bugfix-2026-07-29."
+        },
+        "duration": {
+          "description": "\"auto\" (length derived from input), fixed seconds, or a {min,max} range for arbitrary length.",
+          "oneOf": [
+            { "const": "auto" },
+            { "type": "number", "exclusiveMinimum": 0 },
+            { "$ref": "#/$defs/range" }
+          ],
+          "default": "auto"
+        },
+        "format": {
+          "description": "Aspect ratio. channel wins under the merge rule.",
+          "oneOf": [
+            { "enum": ["9:16", "1:1", "16:9"] },
+            {
+              "type": "object",
+              "required": ["w", "h"],
+              "additionalProperties": false,
+              "properties": {
+                "w": { "type": "integer", "exclusiveMinimum": 0 },
+                "h": { "type": "integer", "exclusiveMinimum": 0 }
+              }
+            }
+          ],
+          "default": "9:16"
+        },
+        "archetype": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$",
+          "description": "Which story template (archetypes/<name>). The agent picks it via intent.md."
+        }
+      }
+    },
+
+    "channel": {
+      "description": "LAYER A - constant channel brand (the sender). Write once.",
+      "type": "object",
+      "required": ["handle", "safe_areas", "captions"],
+      "additionalProperties": false,
+      "properties": {
+        "handle": { "type": "string", "pattern": "^@?[A-Za-z0-9._-]+$" },
+        "safe_areas": {
+          "type": "object",
+          "description": "Pixel margins that platform UI overlays must keep clear (at 1080x1920).",
+          "additionalProperties": false,
+          "properties": {
+            "top": { "type": "integer", "minimum": 0 },
+            "bottom": { "type": "integer", "minimum": 0 },
+            "left": { "type": "integer", "minimum": 0 },
+            "right": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "watermark": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "text": { "type": "string" },
+            "corner": { "enum": ["top-left", "top-right", "bottom-left", "bottom-right"] },
+            "opacity": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "captions": {
+          "type": "object",
+          "description": "Caption layout. Position/size come from channel; accent color comes from brand (merge rule).",
+          "required": ["font", "size", "position"],
+          "additionalProperties": false,
+          "properties": {
+            "font": { "type": "string" },
+            "size": { "type": "integer", "exclusiveMinimum": 0 },
+            "position": { "enum": ["top", "center", "lower-third", "bottom"] },
+            "box": { "type": "boolean", "default": true }
+          }
+        },
+        "intro_sting": {
+          "type": "string",
+          "description": "Path to a 0.8s signature opener (optional)."
+        },
+        "outro_card": {
+          "type": "string",
+          "description": "Path to the fixed sign-off card (template ref)."
+        }
+      }
+    },
+
+    "palette": {
+      "description": "Design tokens. paper/ink/accent/font are required; radius-*/shadow-* and further tokens are freely extensible.",
+      "type": "object",
+      "required": ["paper", "ink", "accent", "font"],
+      "properties": {
+        "paper": { "$ref": "#/$defs/color" },
+        "ink": { "$ref": "#/$defs/color" },
+        "ink-inverse": { "$ref": "#/$defs/color" },
+        "accent": { "$ref": "#/$defs/color" },
+        "surface": { "$ref": "#/$defs/color" },
+        "line": { "$ref": "#/$defs/color" },
+        "muted": { "$ref": "#/$defs/color" },
+        "font": { "type": "string", "minLength": 1 }
+      },
+      "patternProperties": {
+        "^radius-": { "type": "string" },
+        "^shadow-": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+
+    "brand": {
+      "description": "LAYER B - per-project look. 1 folder = 1 project (brands/<slug>/).",
+      "type": "object",
+      "required": ["slug", "palette"],
+      "additionalProperties": false,
+      "properties": {
+        "slug": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "palette": { "$ref": "#/$defs/palette" },
+        "logo": { "type": "string" },
+        "publishable": { "type": "boolean" },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "voice": {
+      "description": "LAYER B - tone/style. Authoring source is brands/<slug>/voice.md (YAML front matter + prose); this validates the resolved front-matter object.",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "tone": { "type": "string" },
+        "pacing": { "type": "string" },
+        "lexicon": {
+          "description": "Word-choice guidance, either free text or a replacement map.",
+          "oneOf": [
+            { "type": "string" },
+            { "type": "object", "additionalProperties": { "type": "string" } }
+          ]
+        },
+        "forbidden": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "music_mood": { "type": "string" },
+        "narration": { "type": "string" }
+      }
+    },
+
+    "tempo": {
+      "type": "object",
+      "required": ["pace"],
+      "additionalProperties": false,
+      "properties": {
+        "pace": {
+          "enum": ["slow", "medium", "fast"],
+          "description": "Drives scene duration and cut frequency."
+        },
+        "beat_sync": { "type": "boolean", "default": false },
+        "energy_curve": {
+          "enum": ["flat", "build", "wave"],
+          "default": "flat"
+        }
+      }
+    },
+
+    "source": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": { "enum": ["github_pr", "github_release", "url", "brief"] },
+        "ref": {
+          "type": "string",
+          "description": "e.g. owner/repo#123, a URL, or a brief path."
+        },
+        "capture": {
+          "type": "boolean",
+          "default": false,
+          "description": "Screen-capture the UI as base footage?"
+        }
+      }
+    },
+
+    "beat": {
+      "description": "One story scene as data. slot carries the variable content; range controls repeatable scenes (length).",
+      "type": "object",
+      "required": ["type"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "hook",
+            "problem",
+            "context",
+            "code-diff",
+            "feature",
+            "flow",
+            "metric",
+            "big-stat",
+            "comparison",
+            "before-after",
+            "quote",
+            "result",
+            "cta",
+            "outro"
+          ]
+        },
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "dur": {
+          "oneOf": [
+            { "type": "number", "exclusiveMinimum": 0 },
+            { "$ref": "#/$defs/range" }
+          ]
+        },
+        "range": {
+          "description": "For repeatable scenes: how many slot entries are allowed (e.g. flow.steps 2-6).",
+          "$ref": "#/$defs/range"
+        },
+        "slot": {
+          "type": "object",
+          "description": "Free content container for this scene type (title, body, items, stats, ...).",
+          "additionalProperties": true
+        }
+      }
+    },
+
+    "broll": {
+      "description": "Optional: generative clips as a composable ingredient (Phase 7).",
+      "type": "object",
+      "required": ["at", "provider", "prompt"],
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "type": "string",
+          "description": "Beat type or beat.id the clip attaches to."
+        },
+        "provider": { "enum": ["veo", "sora", "runway", "kling"] },
+        "prompt": { "type": "string", "minLength": 1 },
+        "role": {
+          "enum": ["background", "insert", "transition"],
+          "default": "background"
+        }
+      }
+    },
+
+    "range": {
+      "type": "object",
+      "required": ["min", "max"],
+      "additionalProperties": false,
+      "properties": {
+        "min": { "type": "number", "minimum": 0 },
+        "max": { "type": "number", "minimum": 0 }
+      },
+      "$comment": "min <= max is additionally checked by the validator (engine/validate.mjs)."
+    },
+
+    "color": {
+      "type": "string",
+      "pattern": "^(#([0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|rgb|rgba|hsl|hsla|var|oklch|oklab)\\b.*$|^(transparent|currentColor|inherit)$",
+      "description": "Hex, rgb(a)/hsl(a)/oklch/oklab function, CSS var(), or keyword."
+    }
+  }
+}

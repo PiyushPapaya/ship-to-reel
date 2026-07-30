@@ -1,0 +1,68 @@
+{
+  "meta": {
+    "id": "projekt-a-bugfix-2026-07-29",
+    "duration": { "min": 12, "max": 22 },
+    "format": "9:16",
+    "archetype": "bugfix-reel"
+  },
+  "channel": {
+    "handle": "@your_handle",
+    "safe_areas": { "top": 220, "bottom": 320, "right": 120 },
+    "watermark": { "text": "@your_handle", "corner": "bottom-left", "opacity": 0.7 },
+    "captions": {
+      "font": "\"Inter\", system-ui, sans-serif",
+      "size": 64,
+      "position": "lower-third",
+      "box": true
+    },
+    "intro_sting": "assets/sting.json",
+    "outro_card": "templates/_shell/outro/v1"
+  },
+  "brand": {
+    "slug": "projekt-a",
+    "palette": {
+      "paper": "#ffffff",
+      "ink": "#0a0a0a",
+      "ink-inverse": "#ffffff",
+      "accent": "#5B8DEF",
+      "surface": "#f4f4f5",
+      "line": "#e5e5e5",
+      "muted": "#b3b3b3",
+      "font": "\"Inter\", system-ui, sans-serif",
+      "radius-pill": "128px",
+      "radius-chip": "40px",
+      "radius-card": "48px",
+      "shadow-badge": "0 4px 12px rgba(10, 10, 10, 0.06)"
+    },
+    "logo": "logo.svg",
+    "publishable": true
+  },
+  "voice": {
+    "tone": "confident, technical, dry wit",
+    "pacing": "fast, short sentences",
+    "lexicon": { "release": "ship", "bug fix": "patch" },
+    "forbidden": ["revolutionary", "game-changing"],
+    "music_mood": "minimal, driving, no vocals",
+    "narration": "second person"
+  },
+  "tempo": {
+    "pace": "fast",
+    "beat_sync": true,
+    "energy_curve": "build"
+  },
+  "source": {
+    "kind": "github_pr",
+    "ref": "your-org/projekt-a#412",
+    "capture": true
+  },
+  "beats": [
+    { "type": "hook", "dur": { "min": 1.5, "max": 3 }, "slot": { "line": "This bug cost us three weeks." } },
+    { "type": "problem", "slot": { "title": "Race condition on login", "body": "Two requests, one token — sometimes empty." } },
+    { "type": "code-diff", "range": { "min": 1, "max": 3 }, "slot": { "file": "auth/session.ts", "removed": "await getToken()", "added": "await getToken({ retry: true })" } },
+    { "type": "result", "slot": { "metric": "0 errors", "sub": "across 10k logins" } },
+    { "type": "outro", "slot": {} }
+  ],
+  "broll": [
+    { "at": "hook", "provider": "veo", "prompt": "abstract dark data streams, slow drift", "role": "background" }
+  ]
+}
