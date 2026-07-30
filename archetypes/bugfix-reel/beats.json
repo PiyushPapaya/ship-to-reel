@@ -1,0 +1,10 @@
+{
+  "tempo": { "pace": "fast", "beat_sync": true, "energy_curve": "build" },
+  "beats": [
+    { "type": "hook", "dur": { "min": 1.5, "max": 3 }, "slot": { "line": "{{hook_line}}" } },
+    { "type": "problem", "slot": { "title": "{{problem_title}}", "body": "{{problem_body}}" } },
+    { "type": "code-diff", "range": { "min": 1, "max": 1 }, "slot": { "file": "{{diff_file}}", "removed": "{{diff_removed}}", "added": "{{diff_added}}" } },
+    { "type": "result", "slot": { "metric": "{{result_metric}}", "sub": "{{result_sub}}" } },
+    { "type": "outro", "slot": {} }
+  ]
+}

@@ -4,6 +4,7 @@ node_modules/
 # render/build artifacts (later phases)
 out/
 dist/
+build/
 *.mp4
 *.mov
 *.webm

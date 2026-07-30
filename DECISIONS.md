@@ -26,3 +26,15 @@ Big architectural forks go to the user; these are the small ones I made myself.
 - **Darkened secondary text** (`.body` #3f3f46, code file/add/del) to clear all WCAG-AA contrast warnings — the `--muted` palette token is for lines/placeholders, not body copy.
 - **render.mjs uses `shell:true` on Windows** (Node ≥20 refuses to spawn `npx.cmd` directly) with defensive arg-quoting; verifies the MP4 via ffprobe (1080×1920, non-empty) rather than trusting "render succeeded".
 - **Proof:** `npm run build` → `build/reel.mp4`, verified 1080×1920, 11.90s, 357 frames. Lint 0 errors, validate 0 errors + all text passes WCAG AA.
+
+## Phase 2 — From real data
+
+- **Ran as the main agent, no subagents** (user override for this phase — CLAUDE.md's Phase 2+ subagent guidance was explicitly skipped for this pass).
+- **`collect.mjs` talks to GitHub only through `gh` via `execFileSync` with an argv array**, never a shell string — a hostile PR title or filename in the ref can't inject a command. Ref parsed with a strict `owner/repo#number` regex before any `gh` call.
+- **One representative file per PR**, not the full diff: pick the largest non-lockfile change by additions+deletions, then take the first added/first removed line from its unified-diff `patch`, trimmed to 60 chars. A `code-diff` beat is a caption card, not a diff viewer — showing everything would blow the beat's duration and the schema's single-slot shape.
+- **`collect.mjs` outputs display-ready strings** (`hook_line`, `problem_body`, …), not raw PR fields — keeps `archetypes/bugfix-reel/beats.json` pure data (placeholders only, no formatting logic), matching PLAN §3 ("Archetypen als Daten"). Formatting (label-joining, PR-body fallback, pluralizing "file/files") lives in `collect.mjs`, not in the template or in `resolve-spec.mjs`.
+- **Placeholder syntax is `{{dot.path}}`**, resolved generically in `resolve-spec.mjs` (`fillTemplate`) against whatever tokens object it's given — not bugfix-reel-specific, so the next archetype (release-reel) reuses it unchanged.
+- **`resolve-spec.mjs` re-validates the merged spec against `reel-spec.schema.json`** before returning it (same ajv-strict gate as `assemble.mjs`) — a broken merge fails loud at resolve time, not three steps later at render time.
+- **`meta.duration` fixed to `"auto"`, `meta.format` defaults to `"9:16"`** (channel's layout call, per the merge rule) — no per-archetype duration math yet; `assemble.mjs` already derives real timing from `tempo.pace` + each beat's `dur` range.
+- **`build/` is now fully gitignored** (was previously only `*.mp4`/`out/`/`dist/`); Phase 1's rendered HTML/PNG snapshots were untracked stragglers, not intentional check-ins.
+- **Proof, end-to-end from a real merged PR** (not synthetic data): `node engine/collect.mjs anuraghazra/github-readme-stats#4709` → `resolve-spec.mjs` → `assemble.mjs` → `render.mjs` → `build/reel.mp4`, verified 1080×1920, 11.90s, 357 frames. `npm run validate` still 5/5 green (no regression on Phase 0/1 data).

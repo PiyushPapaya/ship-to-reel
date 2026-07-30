@@ -10,6 +10,8 @@
   "scripts": {
     "validate": "node engine/validate.mjs",
     "test": "node engine/validate.mjs",
+    "collect": "node engine/collect.mjs",
+    "resolve-spec": "node engine/resolve-spec.mjs",
     "assemble": "node engine/assemble.mjs",
     "render": "node engine/render.mjs",
     "build": "node engine/assemble.mjs && node engine/render.mjs"
