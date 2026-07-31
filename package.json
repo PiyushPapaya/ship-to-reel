@@ -16,6 +16,7 @@
     "capture": "node engine/capture.mjs",
     "seam-gate": "node engine/seam-gate.mjs",
     "render": "node engine/render.mjs",
+    "quality-check": "node engine/quality-check.mjs",
     "build": "node engine/assemble.mjs && node engine/seam-gate.mjs && node engine/render.mjs"
   },
   "dependencies": {
