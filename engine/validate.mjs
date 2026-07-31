@@ -3,7 +3,7 @@
 // every authored data file conforms to it. Exits non-zero on any failure so it
 // can gate CI and the loop discipline ("never claim done without proof").
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -65,11 +65,21 @@ const getDef = (def) => {
 };
 
 // --- Validation cases ---------------------------------------------------------
+// Every brands/<slug>/ folder is discovered and checked the same way — Phase 5
+// proves scaling to a second project via a new folder alone, so the harness
+// must not hardcode a single slug or it can't actually catch that regressing.
+const brandSlugs = readdirSync(join(root, "brands"), { withFileTypes: true })
+  .filter((d) => d.isDirectory())
+  .map((d) => d.name)
+  .sort();
+
 const cases = [
   { name: "examples/reel-spec.example.json vs full schema", validate: ajv.getSchema(schemaId), data: readJSON("examples/reel-spec.example.json") },
   { name: "channel.json vs $defs/channel", validate: getDef("channel"), data: readJSON("channel.json") },
-  { name: "brands/projekt-a/brand.json vs $defs/brand", validate: getDef("brand"), data: readJSON("brands/projekt-a/brand.json") },
-  { name: "brands/projekt-a/voice.md front matter vs $defs/voice", validate: getDef("voice"), data: frontMatter(read("brands/projekt-a/voice.md")) },
+  ...brandSlugs.flatMap((slug) => [
+    { name: `brands/${slug}/brand.json vs $defs/brand`, validate: getDef("brand"), data: readJSON(`brands/${slug}/brand.json`) },
+    { name: `brands/${slug}/voice.md front matter vs $defs/voice`, validate: getDef("voice"), data: frontMatter(read(`brands/${slug}/voice.md`)) },
+  ]),
 ];
 
 for (const c of cases) {

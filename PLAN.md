@@ -279,8 +279,21 @@ PR merged
       Flachheit ab statt "render succeeded" zu glauben. Patch-Pass ist Folgearbeit.)*
 
 **Phase 5 — CI + Multi-Brand**
-- [ ] `reel.yml` (Trigger + FFmpeg), MP4 als Artifact + Slack. **→ nutzbar.**
-- [ ] Zweites Projekt = nur neuer `brands/`-Ordner. Beweist Skalierung.
+- [x] `reel.yml` (Trigger + FFmpeg), MP4 als Artifact + Slack. **→ nutzbar.**
+      *(merged-PR → bugfix-reel Pfad voll verdrahtet: collect → resolve-spec →
+      assemble → seam-gate → render → functional quality-check → Artifact-Upload
+      + Slack-Post. `release: published` ist als Trigger vorhanden, aber noch ein
+      dokumentiertes No-op — es gibt noch kein `release-reel`-Archetyp/Collector,
+      siehe Phase 3c/6-Folgearbeit. FFmpeg-Setup 1:1 aus `heygen-com/hyperframes`
+      `ci.yml` übernommen (apt-get, per Frische-Check verifiziert, Repo lebt).)*
+- [x] Zweites Projekt = nur neuer `brands/`-Ordner. Beweist Skalierung.
+      *(`brands/projekt-b/{brand.json,voice.md}` — bewusst anderer Look (dunkel/warm,
+      orange statt blau) und Ton (warm/editorial statt trocken/technisch) als
+      projekt-a, keine einzige Engine-Datei angefasst. `engine/validate.mjs`
+      entdeckt jetzt jeden `brands/<slug>/`-Ordner automatisch statt projekt-a
+      hart zu kodieren. Voller Render-Durchlauf mit `--brand projekt-b` auf denselben
+      PR-Daten aus Phase 2 bewiesen: seam-gate 13/13, quality-check functional 5/5,
+      Frame visuell verifiziert (dunkle Palette, orange Accent, andere Voice-Copy).)*
 
 **Phase 6 — Distribution (optional, später)**
 - [ ] `distribute/` pro Plattform, jede API einzeln (gated).

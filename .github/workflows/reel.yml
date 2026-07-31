@@ -1,0 +1,125 @@
+name: reel
+
+# Trigger per PLAN.md §6: a merged PR (bugfix-reel, the only archetype/collector
+# built so far) or a published release (wired for later archetypes — currently
+# a documented no-op, see the guard on `resolve` below).
+on:
+  pull_request:
+    types: [closed]
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: reel-${{ github.event.pull_request.number || github.event.release.id || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-reel:
+    name: Build reel
+    if: github.event_name == 'release' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # FFmpeg-Setup wie in hyperframes' eigener CI (heygen-com/hyperframes
+      # .github/workflows/ci.yml) — apt-get, kein Docker/Chocolatey-Umweg.
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Ensure hyperframes' render browser
+        run: npx --yes hyperframes browser ensure
+
+      - name: hyperframes doctor
+        run: npx --yes hyperframes doctor
+
+      - name: Validate reel-spec schema fixtures
+        run: npm run validate
+
+      # --- collect + resolve: only the merged-PR / bugfix-reel path is built
+      #     end-to-end today (Phase 2). A published-release trigger is wired
+      #     per PLAN §6 but has no archetype/collector yet (Phase 3c-style
+      #     deferral) — it succeeds as a documented no-op instead of faking data.
+      - name: Collect PR data
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node engine/collect.mjs "${{ github.repository }}#${{ github.event.pull_request.number }}" build/tokens.json
+
+      - name: Resolve reel-spec
+        if: github.event_name == 'pull_request'
+        run: |
+          node engine/resolve-spec.mjs \
+            --archetype bugfix-reel \
+            --brand projekt-a \
+            --tokens build/tokens.json \
+            --out build/reel-spec.json
+
+      - name: No archetype for release events yet — skipping build
+        if: github.event_name == 'release'
+        run: |
+          echo "::notice::release-reel archetype/collector not built yet (PLAN.md Phase 3c/6 follow-up). Skipping render for this release."
+
+      - name: Assemble
+        if: github.event_name == 'pull_request'
+        run: node engine/assemble.mjs build/reel-spec.json build/
+
+      - name: Seam gate
+        if: github.event_name == 'pull_request'
+        run: node engine/seam-gate.mjs build/index.html
+
+      - name: Render
+        if: github.event_name == 'pull_request'
+        env:
+          REEL_QUALITY: standard
+          REEL_WORKERS: 1
+        run: node engine/render.mjs build/ build/reel.mp4
+
+      # Functional gate only (PLAN §5) — the aesthetic pass needs a human/agent
+      # scoring `--scores` file (engine/quality-check.mjs), which CI can't supply.
+      - name: Quality check (functional gate)
+        if: github.event_name == 'pull_request'
+        run: node engine/quality-check.mjs build/ build/reel.mp4
+
+      - name: Upload reel.mp4 as artifact
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: reel-${{ github.event.pull_request.number }}
+          path: build/reel.mp4
+          if-no-files-found: error
+          retention-days: 30
+
+      # Stufe 1 (PLAN §6): CI-Artifact + Slack-Post, manuell weiterposten.
+      - name: Notify Slack
+        if: github.event_name == 'pull_request' && always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "::warning::SLACK_WEBHOOK_URL not set — skipping Slack notify."
+            exit 0
+          fi
+          if [ "${{ job.status }}" = "success" ]; then
+            text="✅ reel-bot: new bugfix-reel from PR #${{ github.event.pull_request.number }} (${{ github.event.pull_request.title }}) — <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|MP4 artifact>"
+          else
+            text="❌ reel-bot: build failed for PR #${{ github.event.pull_request.number }} — <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|run log>"
+          fi
+          curl -sf -X POST -H 'Content-type: application/json' \
+            --data "$(node -e 'console.log(JSON.stringify({text: process.argv[1]}))' "$text")" \
+            "$SLACK_WEBHOOK_URL"

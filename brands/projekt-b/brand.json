@@ -1,0 +1,20 @@
+{
+  "slug": "projekt-b",
+  "palette": {
+    "paper": "#0f0d0a",
+    "ink": "#f5f0e8",
+    "ink-inverse": "#0f0d0a",
+    "accent": "#E8823C",
+    "surface": "#1c1712",
+    "line": "#3a2f24",
+    "muted": "#8a7c6a",
+    "font": "\"Space Grotesk\", system-ui, sans-serif",
+    "radius-pill": "128px",
+    "radius-chip": "16px",
+    "radius-card": "12px",
+    "shadow-badge": "0 4px 16px rgba(0, 0, 0, 0.35)"
+  },
+  "logo": "logo.svg",
+  "publishable": true,
+  "notes": "Second project, dark/warm editorial palette (deliberately distinct from projekt-a's light/blue starter) — proves Phase 5's scaling claim: a new project is only a new brands/ folder, no engine changes."
+}
