@@ -4,7 +4,7 @@
 // Usage: node engine/assemble.mjs [specPath] [outDir]
 //   defaults: examples/reel-spec.example.json  ->  build/
 
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -72,6 +72,17 @@ export function assemble(specPath, outDir) {
   // over the previous one instead of a hard cut (PLAN §4 "erzwungene Seams").
   // Overlapping clips must sit on different tracks (hyperframes rejects same-track
   // overlap), so consecutive scenes alternate between track 1 and 2.
+  // Phase 3b's capture.mjs writes <outDir>/capture/{manifest.json,frame-NN.png}.
+  // If present, the hook scene composites the first frame as real UI footage
+  // (PLAN §4.3 "echtes Material als Basis") instead of the plain gradient depth
+  // layer every other scene gets.
+  const captureManifestPath = join(resolve(outDir), "capture", "manifest.json");
+  let captureFrame = null;
+  if (existsSync(captureManifestPath)) {
+    const manifest = JSON.parse(readFileSync(captureManifestPath, "utf8"));
+    if (manifest.frames?.length) captureFrame = `capture/${manifest.frames[0].file}`;
+  }
+
   const durs = spec.beats.map((beat) => sceneDuration(beat, pace));
   let t = 0;
   const clips = [];
@@ -83,9 +94,14 @@ export function assemble(specPath, outDir) {
     const id = `scene-${i}-${beat.type}`;
     const inner = renderScene(beat, ctx);
     const track = (i % 2) + 1;
+    const useCapture = i === 0 && captureFrame;
+    const bgClass = useCapture ? "bg-depth bg-capture" : "bg-depth";
+    const bgStyle = useCapture ? ` style="background-image:url('${captureFrame}')"` : "";
     clips.push(
       `      <section id="${id}" class="scene clip" data-start="${start}" data-duration="${dur}" data-track-index="${track}">\n` +
         `        <div class="scene-fill">\n` +
+        `          <div class="${bgClass}"${bgStyle}></div>\n` +
+        (useCapture ? `          <div class="scrim"></div>\n` : "") +
         `        ${inner}\n` +
         `        </div>\n` +
         `      </section>`
@@ -98,9 +114,15 @@ export function assemble(specPath, outDir) {
         `      tl.fromTo("#${id} .scene-fill", { opacity: 0 }, { opacity: 1, duration: ${seam}, ease: "none" }, ${start});`
       );
     }
-    // Content entrance: rises + fades in once the crossfade has mostly landed.
+    // Depth parallax: the background layer drifts+scales across the full scene
+    // span, independently of the content entrance — the "flat slide" complaint
+    // from Phase 4's aesthetic score was fade-only motion with no depth cue.
     tweens.push(
-      `      tl.from("#${id} .anim", { opacity: 0, y: 40, duration: 0.5, stagger: 0.12, ease: "power3.out" }, ${round1(start + seam * 0.6 + 0.1)});`
+      `      tl.fromTo("#${id} .bg-depth", { x: -24, y: -16, scale: 1.06 }, { x: 24, y: 16, scale: 1.14, duration: ${round1(dur + seam)}, ease: "none" }, ${start});`
+    );
+    // Content entrance: rises + scales in once the crossfade has mostly landed.
+    tweens.push(
+      `      tl.from("#${id} .anim", { opacity: 0, y: 56, scale: 0.94, duration: 0.6, stagger: 0.12, ease: "power3.out" }, ${round1(start + seam * 0.6 + 0.1)});`
     );
     t = start + dur;
   });

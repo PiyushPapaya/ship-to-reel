@@ -41,6 +41,30 @@
         display: grid;
         place-items: center;
         background: var(--paper);
+        overflow: hidden;
+      }
+      /* Decorative depth layer behind .stage — real DOM node (not a pseudo-element)
+         so GSAP can parallax-drift it; plain color-mix blobs by default, or a
+         composited UI screen-capture frame on the hook scene (Phase 3b material). */
+      .bg-depth {
+        position: absolute;
+        inset: -12%;
+        background:
+          radial-gradient(760px circle at 15% 14%, color-mix(in srgb, var(--accent) 40%, transparent), transparent 58%),
+          radial-gradient(680px circle at 88% 86%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 55%),
+          radial-gradient(900px circle at 50% 50%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 70%);
+        pointer-events: none;
+      }
+      .bg-capture {
+        background-size: cover;
+        background-position: center top;
+        filter: saturate(0.75) brightness(0.85);
+      }
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, transparent 35%, var(--paper) 82%);
+        pointer-events: none;
       }
       .stage {
         position: absolute;
@@ -59,6 +83,17 @@
         letter-spacing: 0.14em;
         text-transform: uppercase;
         color: var(--accent);
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+      .eyebrow::before {
+        content: "";
+        display: block;
+        width: 48px;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--accent);
       }
       .headline {
         font-size: 92px;
@@ -79,6 +114,7 @@
         border: 2px solid var(--line);
         border-radius: var(--radius-card, 40px);
         padding: 44px 48px;
+        box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.35);
       }
       .metric {
         font-size: 200px;
