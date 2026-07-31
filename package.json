@@ -14,13 +14,17 @@
     "resolve-spec": "node engine/resolve-spec.mjs",
     "assemble": "node engine/assemble.mjs",
     "capture": "node engine/capture.mjs",
+    "tts": "node engine/tts.mjs",
+    "align-captions": "node engine/align-captions.mjs",
+    "beat-sync": "node engine/beat-sync.mjs",
     "seam-gate": "node engine/seam-gate.mjs",
     "render": "node engine/render.mjs",
     "quality-check": "node engine/quality-check.mjs",
-    "build": "node engine/assemble.mjs && node engine/seam-gate.mjs && node engine/render.mjs"
+    "build": "node engine/assemble.mjs && node engine/seam-gate.mjs && node engine/align-captions.mjs && node engine/render.mjs"
   },
   "dependencies": {
-    "gsap": "^3.13.0"
+    "gsap": "^3.13.0",
+    "msedge-tts": "^2.0.7"
   },
   "devDependencies": {
     "ajv": "^8.17.1",

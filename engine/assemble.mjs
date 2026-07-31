@@ -6,7 +6,7 @@
 
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, resolve, relative } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import { renderScene } from "./scenes.mjs";
 
@@ -83,10 +83,28 @@ export function assemble(specPath, outDir) {
     if (manifest.frames?.length) captureFrame = `capture/${manifest.frames[0].file}`;
   }
 
-  const durs = spec.beats.map((beat) => sceneDuration(beat, pace));
+  // Phase 3c's tts.mjs writes <outDir>/narration/manifest.json (per-beat audio +
+  // word timestamps). When present, a beat's on-screen duration must never be
+  // shorter than its spoken narration — otherwise the scene cuts away mid-sentence.
+  // A silent build (no narration run yet) is unaffected: durations fall back to
+  // the pace-based default exactly as before.
+  const narrationManifestPath = join(resolve(outDir), "narration", "manifest.json");
+  let narrationByBeat = null;
+  if (existsSync(narrationManifestPath)) {
+    const nm = JSON.parse(readFileSync(narrationManifestPath, "utf8"));
+    narrationByBeat = new Map(nm.beats.map((b) => [b.beatIndex, b]));
+  }
+
+  const durs = spec.beats.map((beat, i) => {
+    const base = sceneDuration(beat, pace);
+    const narration = narrationByBeat?.get(i);
+    if (narration?.duration) return round1(Math.max(base, narration.duration + 0.4));
+    return base;
+  });
   let t = 0;
   const clips = [];
   const tweens = [];
+  const timing = [];
   spec.beats.forEach((beat, i) => {
     const dur = durs[i];
     const seam = i === 0 ? 0 : seamFor(pace, durs[i - 1], dur);
@@ -97,15 +115,24 @@ export function assemble(specPath, outDir) {
     const useCapture = i === 0 && captureFrame;
     const bgClass = useCapture ? "bg-depth bg-capture" : "bg-depth";
     const bgStyle = useCapture ? ` style="background-image:url('${captureFrame}')"` : "";
+
+    const narration = narrationByBeat?.get(i);
+    let audioTag = "";
+    if (narration?.audioPath) {
+      const relSrc = relative(resolve(outDir), narration.audioPath).replace(/\\/g, "/");
+      audioTag = `\n        <audio id="audio-${id}" class="clip" src="${relSrc}" data-start="${start}" data-duration="${round1(narration.duration)}" data-volume="1"></audio>`;
+    }
+
     clips.push(
       `      <section id="${id}" class="scene clip" data-start="${start}" data-duration="${dur}" data-track-index="${track}">\n` +
         `        <div class="scene-fill">\n` +
         `          <div class="${bgClass}"${bgStyle}></div>\n` +
         (useCapture ? `          <div class="scrim"></div>\n` : "") +
         `        ${inner}\n` +
-        `        </div>\n` +
+        `        </div>${audioTag}\n` +
         `      </section>`
     );
+    timing.push({ index: i, id, type: beat.type, start, duration: dur, seam });
     if (i === 0) {
       // First scene has nothing to crossfade from — it's simply opaque from t=0.
       tweens.push(`      tl.set("#${id} .scene-fill", { opacity: 1 }, 0);`);
@@ -130,6 +157,7 @@ export function assemble(specPath, outDir) {
 
   const wm = channel.watermark ?? {};
   const safe = channel.safe_areas ?? {};
+  const captions = channel.captions;
 
   let html = readText("templates/_shell/shell.html");
   const fill = {
@@ -138,6 +166,8 @@ export function assemble(specPath, outDir) {
     SAFE_TOP: safe.top ?? 0,
     SAFE_BOTTOM: safe.bottom ?? 0,
     SAFE_RIGHT: safe.right ?? 0,
+    CAPTION_SIZE: captions.size,
+    CAPTION_FONT: captions.font,
     DURATION: total,
     CLIPS: clips.join("\n"),
     TIMELINE_BODY: tweens.join("\n"),
@@ -152,6 +182,9 @@ export function assemble(specPath, outDir) {
   mkdirSync(outAbs, { recursive: true });
   writeFileSync(join(outAbs, "index.html"), html, "utf8");
   copyFileSync(join(root, "node_modules/gsap/dist/gsap.min.js"), join(outAbs, "gsap.min.js"));
+  // Persisted for align-captions.mjs / beat-sync.mjs, which need each beat's
+  // resolved absolute start/duration without re-deriving the seam/pace math here.
+  writeFileSync(join(outAbs, "timing.json"), JSON.stringify(timing, null, 2), "utf8");
 
   return { out: join(outAbs, "index.html"), duration: total, scenes: spec.beats.length };
 }

@@ -188,6 +188,10 @@
           "description": "Drives scene duration and cut frequency."
         },
         "beat_sync": { "type": "boolean", "default": false },
+        "bgm": {
+          "type": "string",
+          "description": "Path to a music-bed audio file. Required for beat_sync to have anything to sync cuts to (engine/beat-sync.mjs estimates its BPM)."
+        },
         "energy_curve": {
           "enum": ["flat", "build", "wave"],
           "default": "flat"

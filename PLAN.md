@@ -264,9 +264,17 @@ PR merged
 **Phase 3 — Cinematic**
 - [x] Master-Timeline + `seam-gate` einhängen (Fluss statt Kacheln). *(Phase 3a)*
 - [x] `capture.mjs` für UI-Projekte. *(Phase 3b — real scroll-capture of a merged PR's
-      GitHub page; not yet wired into `assemble.mjs`'s beat rendering)*
-- [ ] `align-captions` + Beat-Sync. *(Phase 3c — blocked on a TTS/audio pipeline that
-      doesn't exist yet; tracked as a follow-up issue, needs a provider decision)*
+      GitHub page; composited into the hook scene's background in Phase 4b)*
+- [x] `align-captions` + Beat-Sync. *(Phase 3c — `engine/tts.mjs` narrates each beat's
+      own on-screen text via Edge-TTS (free default) or ElevenLabs (if
+      `ELEVENLABS_API_KEY` set), both returning word-level timestamps;
+      `engine/align-captions.mjs` turns those into word-accurate rolling captions
+      wired into the existing GSAP timeline; narration audio is muxed into the
+      render as real `<audio class="clip">` elements. Beat-sync (`engine/beat-sync.mjs`)
+      proves BPM estimation + beat-grid snapping in isolation — not yet wired into
+      assemble.mjs's cut timing, since there's no real music-bed asset in the repo
+      yet (a licensing/style decision, tracked as follow-up, same class of deferral
+      as broll/Phase 7).)*
 
 **Phase 4 — Wächter**
 - [x] `quality-check.mjs` (funktional + ästhetisch). *(Funktional: lint + Frame-Extraktion

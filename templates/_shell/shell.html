@@ -12,6 +12,8 @@
         --safe-top: {{SAFE_TOP}}px;
         --safe-bottom: {{SAFE_BOTTOM}}px;
         --safe-right: {{SAFE_RIGHT}}px;
+        --caption-size: {{CAPTION_SIZE}}px;
+        --caption-font: {{CAPTION_FONT}};
       }
       * { box-sizing: border-box; }
       body {
@@ -141,6 +143,40 @@
         text-align: center;
       }
       .outro .handle { font-size: 56px; font-weight: 800; }
+      /* Word-accurate captions (Phase 3c, engine/align-captions.mjs). Position/size
+         are channel's call, accent highlight color is brand's — the merge rule from
+         PLAN §1's "Grenzfall Captions". Frame-relative and scoped inside each scene's
+         .scene-fill, so it shows/hides with that scene's own clip lifecycle. */
+      .captions {
+        position: absolute;
+        left: 64px;
+        right: var(--safe-right);
+        height: calc(var(--caption-size) * 1.6);
+        font-family: var(--caption-font, var(--font));
+        font-size: var(--caption-size);
+        font-weight: 700;
+        line-height: 1.35;
+        color: var(--ink);
+        text-align: center;
+        z-index: 40;
+      }
+      .captions.pos-top { top: var(--safe-top); }
+      .captions.pos-center { top: 50%; transform: translateY(-50%); }
+      .captions.pos-lower-third { bottom: calc(var(--safe-bottom) + 40px); }
+      .captions.pos-bottom { bottom: var(--safe-bottom); }
+      /* Only one .cline (a short rolling chunk of words) is visible at a time —
+         they stack in the same box and cross-fade via opacity, driven by
+         align-captions.mjs's per-chunk tl.set calls. */
+      .captions .cline {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+      }
+      .captions .cw { display: inline-block; }
+      .captions.boxed .cw { padding: 2px 10px; border-radius: 8px; }
       /* Persistent brand watermark — no class="clip", so it stays visible the whole video. */
       #watermark {
         position: absolute;
