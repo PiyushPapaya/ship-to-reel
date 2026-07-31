@@ -110,15 +110,22 @@ jobs:
         if: github.event_name == 'pull_request' && always()
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          JOB_STATUS: ${{ job.status }}
+          # Untrusted (attacker-controlled on a fork PR) — passed via env, never
+          # interpolated into the script body, so a hostile PR title can't inject
+          # shell commands here.
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
             echo "::warning::SLACK_WEBHOOK_URL not set — skipping Slack notify."
             exit 0
           fi
-          if [ "${{ job.status }}" = "success" ]; then
-            text="✅ reel-bot: new bugfix-reel from PR #${{ github.event.pull_request.number }} (${{ github.event.pull_request.title }}) — <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|MP4 artifact>"
+          if [ "$JOB_STATUS" = "success" ]; then
+            text="✅ reel-bot: new bugfix-reel from PR #${PR_NUMBER} (${PR_TITLE}) — <${RUN_URL}|MP4 artifact>"
           else
-            text="❌ reel-bot: build failed for PR #${{ github.event.pull_request.number }} — <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|run log>"
+            text="❌ reel-bot: build failed for PR #${PR_NUMBER} — <${RUN_URL}|run log>"
           fi
           curl -sf -X POST -H 'Content-type: application/json' \
             --data "$(node -e 'console.log(JSON.stringify({text: process.argv[1]}))' "$text")" \
