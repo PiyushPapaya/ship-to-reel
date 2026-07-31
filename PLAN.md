@@ -262,8 +262,11 @@ PR merged
 - [ ] `resolve-spec.mjs` (der Merge). → aus PR-Daten ein Reel.
 
 **Phase 3 — Cinematic**
-- [ ] Master-Timeline + `seam-gate` einhängen (Fluss statt Kacheln).
-- [ ] `capture.mjs` für UI-Projekte; `align-captions` + Beat-Sync.
+- [x] Master-Timeline + `seam-gate` einhängen (Fluss statt Kacheln). *(Phase 3a)*
+- [x] `capture.mjs` für UI-Projekte. *(Phase 3b — real scroll-capture of a merged PR's
+      GitHub page; not yet wired into `assemble.mjs`'s beat rendering)*
+- [ ] `align-captions` + Beat-Sync. *(Phase 3c — blocked on a TTS/audio pipeline that
+      doesn't exist yet; tracked as a follow-up issue, needs a provider decision)*
 
 **Phase 4 — Wächter**
 - [ ] `quality-check.mjs` (funktional + ästhetisch), Critique-Loop.
