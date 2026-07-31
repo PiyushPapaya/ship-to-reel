@@ -115,6 +115,11 @@ export function assemble(specPath, outDir) {
     const useCapture = i === 0 && captureFrame;
     const bgClass = useCapture ? "bg-depth bg-capture" : "bg-depth";
     const bgStyle = useCapture ? ` style="background-image:url('${captureFrame}')"` : "";
+    // Ghost beat-number: skipped where it would clash with already-large centered
+    // content (result's big metric, outro's sign-off) or with the hook's real
+    // capture footage, which is already this scene's distinctive element.
+    const showIndex = !useCapture && beat.type !== "result" && beat.type !== "outro";
+    const indexTag = showIndex ? `\n          <div class="stage-index">${String(i + 1).padStart(2, "0")}</div>` : "";
 
     const narration = narrationByBeat?.get(i);
     let audioTag = "";
@@ -128,7 +133,8 @@ export function assemble(specPath, outDir) {
         `        <div class="scene-fill">\n` +
         `          <div class="${bgClass}"${bgStyle}></div>\n` +
         (useCapture ? `          <div class="scrim"></div>\n` : "") +
-        `        ${inner}\n` +
+        indexTag +
+        `\n        ${inner}\n` +
         `        </div>${audioTag}\n` +
         `      </section>`
     );

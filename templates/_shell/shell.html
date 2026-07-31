@@ -68,6 +68,23 @@
         background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, transparent 35%, var(--paper) 82%);
         pointer-events: none;
       }
+      /* Real layout element (assemble.mjs decides per-beat whether to emit it),
+         not decoration: a giant beat-number bleeding off the corner. It fills the
+         lower frame that content-block centering left empty (Phase 4's honest
+         composition complaint), and doubles as a wayfinding/distinctiveness cue —
+         "you're on beat 2 of 5" — instead of just another gradient. */
+      .stage-index {
+        position: absolute;
+        right: -0.06em;
+        bottom: -0.14em;
+        font-size: 640px;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        color: color-mix(in srgb, var(--accent) 12%, var(--paper));
+        pointer-events: none;
+        user-select: none;
+      }
       .stage {
         position: absolute;
         top: var(--safe-top);
@@ -76,8 +93,17 @@
         left: 64px;
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: flex-start;
+        padding-top: 9%;
         gap: 28px;
+      }
+      /* result/outro are short "reveal" beats — center them instead of the
+         top-anchored rule-of-thirds layout the info-dense beats use, so the big
+         metric/sign-off doesn't look pinned to the top of an otherwise-empty frame. */
+      [id$="-result"] .stage,
+      [id$="-outro"] .stage {
+        justify-content: center;
+        padding-top: 0;
       }
       .eyebrow {
         font-size: 30px;
