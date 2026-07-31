@@ -269,8 +269,14 @@ PR merged
       doesn't exist yet; tracked as a follow-up issue, needs a provider decision)*
 
 **Phase 4 — Wächter**
-- [ ] `quality-check.mjs` (funktional + ästhetisch), Critique-Loop.
-- [ ] Schwelle hart auf "fließend" stellen.
+- [x] `quality-check.mjs` (funktional + ästhetisch). *(Funktional: lint + Frame-Extraktion
+      + Frozen-Frame-Hashing + ffprobe, voll automatisiert. Ästhetisch: Scorecard-Gerüst,
+      gescored von wem auch immer baut (Agent/Mensch) über `--scores`, da kein Vision-Model
+      im Repo verdrahtet ist — Critique-Loop ist dadurch aktuell agent-driven, kein
+      eigenständiges Auto-Patch-Script.)*
+- [x] Schwelle hart auf "fließend" stellen. *(avg ≥ 4.0, jede der 7 Dimensionen ≥ 3 —
+      am echten `build/reel.mp4` geprüft: avg 2.57, durchgefallen — Gate fängt echte
+      Flachheit ab statt "render succeeded" zu glauben. Patch-Pass ist Folgearbeit.)*
 
 **Phase 5 — CI + Multi-Brand**
 - [ ] `reel.yml` (Trigger + FFmpeg), MP4 als Artifact + Slack. **→ nutzbar.**
