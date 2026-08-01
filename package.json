@@ -21,6 +21,7 @@
     "seam-gate": "node engine/seam-gate.mjs",
     "render": "node engine/render.mjs",
     "quality-check": "node engine/quality-check.mjs",
+    "score-frames": "node engine/score-frames.mjs",
     "build": "node engine/assemble.mjs && node engine/seam-gate.mjs && node engine/align-captions.mjs && node engine/render.mjs",
     "distribution-copy": "node engine/generate-distribution-copy.mjs",
     "distribute": "node distribute/index.mjs"

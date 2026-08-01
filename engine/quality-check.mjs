@@ -16,7 +16,13 @@
 //     this script cannot see the frames itself, so scoring is done by whoever
 //     (agent or human) looks at build/quality/frames/*.png and writes the file.
 //
-// Usage: node engine/quality-check.mjs [dir] [mp4] [--scores path.json]
+// Usage: node engine/quality-check.mjs [dir] [mp4] [--scores path.json] [--auto]
+//
+// --auto (ROADMAP-NEXT.md Tier 1.1) runs engine/score-frames.mjs against the
+// just-extracted frames and uses its output as --scores, so the aesthetic gate
+// is fully automated end to end. Falls back to the existing "pending" state
+// (never fails the build on its own) if score-frames.mjs skips for lack of
+// ANTHROPIC_API_KEY.
 
 import { spawnSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from "node:fs";
@@ -25,12 +31,13 @@ import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const args = process.argv.slice(2).filter((a) => a !== "--scores" && a !== argScoresValue());
+const args = process.argv.slice(2).filter((a) => a !== "--scores" && a !== argScoresValue() && a !== "--auto");
 function argScoresValue() {
   const i = process.argv.indexOf("--scores");
   return i === -1 ? undefined : process.argv[i + 1];
 }
-const scoresPath = argScoresValue();
+const autoScore = process.argv.includes("--auto");
+let scoresPath = argScoresValue();
 
 const dir = resolve(args[0] ?? join(root, "build"));
 const mp4 = resolve(args[1] ?? join(dir, "reel.mp4"));
@@ -92,6 +99,20 @@ record(
     ? `only ${uniqueHashes.size} distinct frame(s) across ${frameFiles.length} samples — looks like a stuck/frozen render`
     : undefined
 );
+
+// --- optional: auto-score via engine/score-frames.mjs (ROADMAP-NEXT.md 1.1) ---
+if (autoScore && !scoresPath) {
+  const autoOut = join(dirname(reportPath), "scores.json");
+  if (existsSync(autoOut)) unlinkSync(autoOut); // never trust a stale scores.json from a prior manual/--auto run
+  const scoreRun = run("node", [join(root, "engine", "score-frames.mjs"), framesDir, "--out", autoOut]);
+  console.log((scoreRun.stdout || "").trim());
+  if (scoreRun.stderr) console.log(scoreRun.stderr.trim());
+  if (scoreRun.status === 0 && existsSync(autoOut)) {
+    scoresPath = autoOut;
+  } else {
+    console.log("  … --auto could not produce scores (see above) — falling back to pending aesthetic state");
+  }
+}
 
 // --- aesthetic pass: scorecard scaffold + optional threshold gate --------------
 const DIMENSIONS = ["typography", "color", "composition", "hierarchy", "motion_flow", "consistency", "distinctiveness"];

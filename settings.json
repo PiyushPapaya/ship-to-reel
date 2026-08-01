@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "Edit(/**)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(bun *)",
+      "Bash(bunx *)",
+      "Bash(ffmpeg *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(gh *)"
+    ],
+    "deny": [
+      "Bash(rm *)",
+      "Bash(git push *)",
+      "Bash(git reset --hard *)",
+      "Bash(curl *)",
+      "Bash(wget *)",
+      "Bash(*sudo*)"
+    ]
+  }
+}
