@@ -14,6 +14,7 @@
     "resolve-spec": "node engine/resolve-spec.mjs",
     "assemble": "node engine/assemble.mjs",
     "capture": "node engine/capture.mjs",
+    "broll": "node engine/broll.mjs",
     "tts": "node engine/tts.mjs",
     "align-captions": "node engine/align-captions.mjs",
     "beat-sync": "node engine/beat-sync.mjs",

@@ -248,18 +248,21 @@ PR merged
 ## 10. Bau-Roadmap (in Reifegrad-Reihenfolge)
 
 **Phase 0 — Fundament**
-- [ ] `reel-spec.schema.json` entwerfen (die Grundplatte). *Alles hängt hieran.*
-- [ ] `channel.json` mit deinem echten IG-Layout füllen.
-- [ ] `brands/projekt-a/{brand.json, voice.md}` für **ein** Projekt.
+- [x] `reel-spec.schema.json` entwerfen (die Grundplatte). *Alles hängt hieran.*
+- [x] `channel.json` mit deinem echten IG-Layout füllen.
+- [x] `brands/projekt-a/{brand.json, voice.md}` für **ein** Projekt.
 
 **Phase 1 — Ein Render, lokal**
-- [ ] `_shell/` + 4–5 Scene-Types (hyperframes/catalog + motion-shorts adaptieren).
-- [ ] hardcoded `reel-spec.json` → `assemble.mjs` → `render.mjs` → 1 MP4.
-- [ ] Beweist: Brand-Schicht + 9:16 + Grundplatte funktionieren.
+- [x] `_shell/` + 4–5 Scene-Types (hyperframes/catalog + motion-shorts adaptieren).
+      *(Scene-Types als `engine/scenes.mjs`-Generatoren statt einzelner
+      `templates/scenes/<type>/v1/`-Ordner — deterministische Funktionen statt
+      Dateibäume, gleiche Garantie: Spec → immer dieselben Bytes.)*
+- [x] hardcoded `reel-spec.json` → `assemble.mjs` → `render.mjs` → 1 MP4.
+- [x] Beweist: Brand-Schicht + 9:16 + Grundplatte funktionieren.
 
 **Phase 2 — Aus echten Daten**
-- [ ] `collect.mjs` (gh CLI) + `bugfix-reel`-Archetyp.
-- [ ] `resolve-spec.mjs` (der Merge). → aus PR-Daten ein Reel.
+- [x] `collect.mjs` (gh CLI) + `bugfix-reel`-Archetyp.
+- [x] `resolve-spec.mjs` (der Merge). → aus PR-Daten ein Reel.
 
 **Phase 3 — Cinematic**
 - [x] Master-Timeline + `seam-gate` einhängen (Fluss statt Kacheln). *(Phase 3a)*
@@ -315,7 +318,13 @@ PR merged
       DECISIONS.md). Bewusst nicht in `reel.yml` verdrahtet — Stufe 2 bleibt manuell.)*
 
 **Phase 7 — B-Roll (optional, für Film-Look)**
-- [ ] `broll.mjs`: Veo/Sora-Clips als komponierbare Zutat.
+- [x] `broll.mjs`: Veo/Sora-Clips als komponierbare Zutat. *(alle vier Schema-Provider
+      (veo/sora/runway/kling) implementiert, jeder einzeln env-gated nach demselben
+      "skip statt hard-fail"-Muster wie `distribute/*.mjs` — keine Credentials im Repo,
+      daher live unverifiziert (Frische-Check-Hinweis in den Kommentaren), aber der
+      Skip-/Fehler-/No-op-Pfad ist real getestet. Kompositierung in `assemble.mjs`
+      bewusst nicht in diesem Pass — gleiche Zerlegung wie `capture.mjs` in Phase 3b →
+      4b, als Folgearbeit vermerkt.)*
 
 ---
 
