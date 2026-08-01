@@ -304,7 +304,15 @@ PR merged
       Frame visuell verifiziert (dunkle Palette, orange Accent, andere Voice-Copy).)*
 
 **Phase 6 — Distribution (optional, später)**
-- [ ] `distribute/` pro Plattform, jede API einzeln (gated).
+- [x] `distribute/` pro Plattform, jede API einzeln (gated). *(`engine/generate-distribution-copy.mjs`
+      erzeugt YouTube-Title/Description/Tags + IG/TikTok-Captions aus `reel-spec.json` +
+      `tokens.json`, mit Voice-Lexikon-Ersetzung und einem harten Fail-Gate auf
+      `voice.forbidden` — braucht keine API-Keys, voll getestet an echten Phase-2-PR-Daten.
+      `distribute/{youtube,instagram,tiktok}.mjs` implementieren jeweils den dokumentierten
+      Post-Flow, sind aber env-gated: fehlen Credentials, loggt `distribute/index.mjs` pro
+      Plattform "skipped" und exitet 0 (nie ein Build-Blocker) — noch nicht gegen einen
+      echten Account verifiziert, da noch keine Zugänge existieren (user-Entscheidung, siehe
+      DECISIONS.md). Bewusst nicht in `reel.yml` verdrahtet — Stufe 2 bleibt manuell.)*
 
 **Phase 7 — B-Roll (optional, für Film-Look)**
 - [ ] `broll.mjs`: Veo/Sora-Clips als komponierbare Zutat.
