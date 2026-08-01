@@ -25,6 +25,10 @@ const round1 = (n) => Math.round(n * 10) / 10;
 const SEAM_BY_PACE = { fast: 0.3, medium: 0.4, slow: 0.5 };
 const MAX_SEAM_FRACTION = 0.4; // never eat more than 40% of the shorter neighbor
 
+// Each broll video gets its own track (one per beat index) rather than sharing one —
+// simplest way to guarantee no same-track overlap regardless of seam adjacency.
+const BROLL_TRACK_BASE = 20;
+
 function seamFor(pace, prevDur, nextDur) {
   const wanted = SEAM_BY_PACE[pace] ?? 0.4;
   return round1(Math.min(wanted, MAX_SEAM_FRACTION * Math.min(prevDur, nextDur)));
@@ -83,6 +87,23 @@ export function assemble(specPath, outDir) {
     if (manifest.frames?.length) captureFrame = `capture/${manifest.frames[0].file}`;
   }
 
+  // Phase 7's broll.mjs writes <outDir>/broll/{manifest.json,<provider>-<i>.mp4}.
+  // A resolved item attaches to a beat by "at" (beat.type — beats have no id in this
+  // schema) and composites as real video motion behind that scene, same depth-layer
+  // role capture.mjs's screenshot frame plays for the hook (ROADMAP-NEXT.md 1.3).
+  // Skipped/error items (no credentials configured) leave the beat on its plain
+  // gradient depth layer — same best-effort discipline as broll.mjs itself.
+  const brollManifestPath = join(resolve(outDir), "broll", "manifest.json");
+  const brollByAt = new Map();
+  if (existsSync(brollManifestPath)) {
+    const manifest = JSON.parse(readFileSync(brollManifestPath, "utf8"));
+    for (const item of manifest.items ?? []) {
+      if (item.status === "resolved" && item.file && !brollByAt.has(item.at)) {
+        brollByAt.set(item.at, item);
+      }
+    }
+  }
+
   // Phase 3c's tts.mjs writes <outDir>/narration/manifest.json (per-beat audio +
   // word timestamps). When present, a beat's on-screen duration must never be
   // shorter than its spoken narration — otherwise the scene cuts away mid-sentence.
@@ -113,12 +134,28 @@ export function assemble(specPath, outDir) {
     const inner = renderScene(beat, ctx);
     const track = (i % 2) + 1;
     const useCapture = i === 0 && captureFrame;
+    // Capture (real screen-record footage) wins if a beat somehow has both — it's
+    // the more concrete material. broll is the abstract/generative fallback layer.
+    const brollItem = !useCapture ? brollByAt.get(beat.type) : null;
+    const useBroll = !!brollItem;
     const bgClass = useCapture ? "bg-depth bg-capture" : "bg-depth";
     const bgStyle = useCapture ? ` style="background-image:url('${captureFrame}')"` : "";
+    const fillClass = useBroll ? "scene-fill scene-fill-broll" : "scene-fill";
+    const brollId = `${id}-broll`;
+    // Video must be a direct child of the composition root, not nested inside the
+    // scene section — hyperframes never decodes/seeks media buried in a wrapper div
+    // (see hyperframes-core: variables-and-media.md). So it's emitted as its own
+    // root-level <video>, positioned to fill the frame and placed in DOM order
+    // right before this scene's <section> — same stacking-by-DOM-order the scenes
+    // already rely on for their own crossfade, so it paints above the previous
+    // scene but below this scene's (now-transparent) fill, scrim and content.
+    const brollTag = useBroll
+      ? `      <video id="${brollId}" class="clip bg-broll-video" src="broll/${brollItem.file}" data-start="${start}" data-duration="${dur}" data-track-index="${BROLL_TRACK_BASE + i}" muted playsinline></video>\n`
+      : "";
     // Ghost beat-number: skipped where it would clash with already-large centered
-    // content (result's big metric, outro's sign-off) or with the hook's real
-    // capture footage, which is already this scene's distinctive element.
-    const showIndex = !useCapture && beat.type !== "result" && beat.type !== "outro";
+    // content (result's big metric, outro's sign-off) or with real footage (capture
+    // or broll) that's already this scene's distinctive element.
+    const showIndex = !useCapture && !useBroll && beat.type !== "result" && beat.type !== "outro";
     const indexTag = showIndex ? `\n          <div class="stage-index">${String(i + 1).padStart(2, "0")}</div>` : "";
 
     const narration = narrationByBeat?.get(i);
@@ -129,10 +166,11 @@ export function assemble(specPath, outDir) {
     }
 
     clips.push(
-      `      <section id="${id}" class="scene clip" data-start="${start}" data-duration="${dur}" data-track-index="${track}">\n` +
-        `        <div class="scene-fill">\n` +
+      brollTag +
+        `      <section id="${id}" class="scene clip" data-start="${start}" data-duration="${dur}" data-track-index="${track}">\n` +
+        `        <div class="${fillClass}">\n` +
         `          <div class="${bgClass}"${bgStyle}></div>\n` +
-        (useCapture ? `          <div class="scrim"></div>\n` : "") +
+        (useCapture || useBroll ? `          <div class="scrim"></div>\n` : "") +
         indexTag +
         `\n        ${inner}\n` +
         `        </div>${audioTag}\n` +
@@ -153,6 +191,11 @@ export function assemble(specPath, outDir) {
     tweens.push(
       `      tl.fromTo("#${id} .bg-depth", { x: -24, y: -16, scale: 1.06 }, { x: 24, y: 16, scale: 1.14, duration: ${round1(dur + seam)}, ease: "none" }, ${start});`
     );
+    if (useBroll) {
+      tweens.push(
+        `      tl.fromTo("#${brollId}", { x: -24, y: -16, scale: 1.06 }, { x: 24, y: 16, scale: 1.14, duration: ${round1(dur + seam)}, ease: "none" }, ${start});`
+      );
+    }
     // Content entrance: rises + scales in once the crossfade has mostly landed.
     tweens.push(
       `      tl.from("#${id} .anim", { opacity: 0, y: 56, scale: 0.94, duration: 0.6, stagger: 0.12, ease: "power3.out" }, ${round1(start + seam * 0.6 + 0.1)});`

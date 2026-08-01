@@ -62,6 +62,22 @@
         background-position: center top;
         filter: saturate(0.75) brightness(0.85);
       }
+      /* Broll beats swap the opaque paper fill for a hole the root-level <video>
+         (a sibling, not a descendant — hyperframes owns media playback only for
+         direct root children) shows through; .bg-depth's gradients + .scrim still
+         paint on top of it for brand tint and caption legibility. */
+      .scene-fill-broll {
+        background: transparent;
+      }
+      .bg-broll-video {
+        position: absolute;
+        inset: -12%;
+        width: 124%;
+        height: 124%;
+        object-fit: cover;
+        filter: saturate(0.8) brightness(0.75);
+        pointer-events: none;
+      }
       .scrim {
         position: absolute;
         inset: 0;

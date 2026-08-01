@@ -50,13 +50,21 @@ them via `--scores`. That missing keystone is the highest-leverage work in the r
 - **Done when:** `distinctiveness` honestly reaches 4, and `projekt-a` vs `projekt-b` produce
   visibly different signatures, not a palette swap.
 
-### 1.3 Composite B-roll into scenes (Phase 7's deliberately deferred half)
+### 1.3 Composite B-roll into scenes (Phase 7's deliberately deferred half) — **[DONE]**
 - `broll.mjs` resolves clips but `assemble.mjs` never composites them — same split as
   `capture.mjs` (3b → 4b). Wire resolved `broll[]` clips in as `<video class="clip">` depth
   backgrounds behind the hook/problem scenes, under the existing scrim, exactly like capture
   footage. **This is the actual film-look lever** `PLAN.md` §4 named.
 - **Done when:** a spec with a `broll` item (a mock local clip if no API key) renders with
-  real video motion behind the hook; `seam-gate` + `lint` stay green.
+  real video motion behind the hook; `seam-gate` + `lint` stay green. **Done** —
+  `assemble.mjs` now reads `<outDir>/broll/manifest.json` and, for each beat with a
+  `status: "resolved"` item matching its `at`, emits a root-level `<video class="clip">`
+  (hyperframes requires media to be a direct root child, never nested — see `DECISIONS.md`
+  → "ROADMAP-NEXT.md 1.3" for why that shaped the design) positioned as the scene's depth
+  layer, under the scrim, with its own drift+scale parallax tween. Verified with a mock
+  local clip: `seam-gate` 13/13, `hyperframes lint`/`validate` 0 errors, a `snapshot` visually
+  confirmed real per-frame motion, and a full render passed `quality-check.mjs` functional
+  5/5 including the frozen-frame check.
 
 ---
 
