@@ -79,6 +79,9 @@ function validateSpec(spec) {
   }
 }
 
+const escHtml = (s) =>
+  String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
 // --- token injection ----------------------------------------------------------
 function paletteToCss(palette) {
   return Object.entries(palette)
@@ -103,6 +106,22 @@ export function assemble(specPath, outDir) {
   const sigMotif = sig.motif ?? "none";
   const sigGrain = sig.grain ?? false;
   const sigType = sig.type_treatment ?? "default";
+
+  // ROADMAP-NEXT.md 2.2 — channel.intro_sting / channel.outro_card: real,
+  // channel-constant bookends (PLAN §2's "einmal schreiben, nie wieder
+  // anfassen" layer A), not brand-conditional — every project gets the exact
+  // same 0.8s sting and sign-off card, which is the point (a fixed identity
+  // wrapper regardless of which project/brand plays inside it). Both are
+  // optional: a channel.json without them (or pointing at a missing file)
+  // renders exactly like before this pass.
+  function loadJsonIfExists(relPath) {
+    if (!relPath) return null;
+    const p = join(root, relPath);
+    if (!existsSync(p)) return null;
+    try { return JSON.parse(readFileSync(p, "utf8")); } catch { return null; }
+  }
+  const introSting = loadJsonIfExists(channel.intro_sting);
+  const outroCard = loadJsonIfExists(channel.outro_card && join(channel.outro_card, "card.json"));
 
   // Master-timeline: scenes overlap by a seam so the next scene's fill crossfades
   // over the previous one instead of a hard cut (PLAN §4 "erzwungene Seams").
@@ -176,13 +195,37 @@ export function assemble(specPath, outDir) {
     for (let i = 0; i < durs.length; i++) durs[i] = round1(snapped[i + 1] - snapped[i]);
   }
 
-  let t = 0;
+  let t = introSting ? introSting.duration : 0;
   const clips = [];
   const tweens = [];
   const timing = [];
+
+  // ROADMAP-NEXT.md 2.2 — the intro sting: a fixed, channel-constant 0.8s opener
+  // (PLAN §2 layer A), always track 2 so it never collides with beat 0 (which
+  // starts on track 1, i%2+1 at i=0) during their crossfade overlap.
+  if (introSting) {
+    const STING_TRACK = 2;
+    const handle = escHtml(channel.handle ?? "");
+    timing.push({ index: -1, id: "scene-sting", type: "sting", start: 0, duration: introSting.duration, seam: 0 });
+    clips.push(
+      `      <section id="scene-sting" class="scene clip" data-start="0" data-duration="${introSting.duration}" data-track-index="${STING_TRACK}">\n` +
+        `        <div class="scene-fill sting-fill">\n` +
+        `          <p class="sting-handle anim">${handle}</p>\n` +
+        `        </div>\n` +
+        `      </section>`
+    );
+    tweens.push(`      tl.set("#scene-sting .scene-fill", { opacity: 1 }, 0);`);
+    tweens.push(
+      `      tl.fromTo("#scene-sting .sting-handle", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(2)" }, 0);`
+    );
+  }
+  // A beat only gets the "nothing to crossfade from" treatment if it's truly
+  // first in the whole timeline — with an intro sting, beat 0 crossfades in
+  // from the sting exactly like any other seam.
+  const firstBeatHasNoPredecessor = (i) => i === 0 && !introSting;
   spec.beats.forEach((beat, i) => {
     const dur = durs[i];
-    const seam = i === 0 ? 0 : seamFor(pace, durs[i - 1], dur, knobs.seamBoost);
+    const seam = firstBeatHasNoPredecessor(i) ? 0 : seamFor(pace, i === 0 ? introSting.duration : durs[i - 1], dur, knobs.seamBoost);
     const start = round1(t - seam);
     const id = `scene-${i}-${beat.type}`;
     const inner = renderScene(beat, ctx);
@@ -236,7 +279,7 @@ export function assemble(specPath, outDir) {
         `      </section>`
     );
     timing.push({ index: i, id, type: beat.type, start, duration: dur, seam });
-    if (i === 0) {
+    if (firstBeatHasNoPredecessor(i)) {
       // First scene has nothing to crossfade from — it's simply opaque from t=0.
       tweens.push(`      tl.set("#${id} .scene-fill", { opacity: 1 }, 0);`);
     } else if (sigTransition === "wipe") {
@@ -294,6 +337,37 @@ export function assemble(specPath, outDir) {
     );
     t = start + dur;
   });
+
+  // ROADMAP-NEXT.md 2.2 — the outro card: a fixed, channel-constant sign-off
+  // (PLAN §2 layer A) appended after the last beat, on the opposite track from
+  // whichever track the last beat used so their crossfade never collides.
+  if (outroCard) {
+    const lastTrack = (spec.beats.length - 1) % 2 + 1;
+    const cardTrack = lastTrack === 1 ? 2 : 1;
+    const lastDur = durs[durs.length - 1];
+    const seam = seamFor(pace, lastDur, outroCard.duration, knobs.seamBoost);
+    const start = round1(t - seam);
+    const handle = escHtml(channel.handle ?? "");
+    const tagline = escHtml(outroCard.tagline ?? "");
+    timing.push({ index: spec.beats.length, id: "scene-outro-card", type: "outro-card", start, duration: outroCard.duration, seam });
+    clips.push(
+      `      <section id="scene-outro-card" class="scene clip" data-start="${start}" data-duration="${outroCard.duration}" data-track-index="${cardTrack}">\n` +
+        `        <div class="scene-fill outro-card-fill">\n` +
+        `          <div class="outro-card-body">\n` +
+        (handle ? `            <p class="outro-card-handle anim">${handle}</p>\n` : "") +
+        (tagline ? `            <p class="outro-card-tagline anim">${tagline}</p>\n` : "") +
+        `          </div>\n` +
+        `        </div>\n` +
+        `      </section>`
+    );
+    tweens.push(
+      `      tl.fromTo("#scene-outro-card .scene-fill", { opacity: 0 }, { opacity: 1, duration: ${seam}, ease: "none" }, ${start});`
+    );
+    tweens.push(
+      `      tl.from("#scene-outro-card .anim", { opacity: 0, y: 40, duration: 0.5, stagger: 0.1, ease: "power3.out" }, ${round1(start + seam * 0.6 + 0.1)});`
+    );
+    t = start + outroCard.duration;
+  }
   const total = round1(t);
 
   // ROADMAP-NEXT.md 2.1 — the resolved music bed plays under the whole reel on

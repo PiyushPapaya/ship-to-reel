@@ -18,7 +18,10 @@ const htmlPath = resolve(process.argv[2] ?? join(root, "build/index.html"));
 const html = readFileSync(htmlPath, "utf8");
 
 // --- parse every <section class="scene clip" ...> in document order -----------
-const sceneRe = /<section id="(scene-\d+-[a-z-]+)" class="scene clip" data-start="([\d.]+)" data-duration="([\d.]+)" data-track-index="(\d+)"/g;
+// scene-sting / scene-outro-card (ROADMAP-NEXT.md 2.2's channel-constant
+// bookends) are real scenes with the same crossfade contract as beats — the
+// seam gate must cover them too, not silently skip them for lacking a beat index.
+const sceneRe = /<section id="(scene-\d+-[a-z-]+|scene-sting|scene-outro-card)" class="scene clip" data-start="([\d.]+)" data-duration="([\d.]+)" data-track-index="(\d+)"/g;
 const scenes = [];
 for (const m of html.matchAll(sceneRe)) {
   scenes.push({ id: m[1], start: Number(m[2]), duration: Number(m[3]), track: Number(m[4]) });

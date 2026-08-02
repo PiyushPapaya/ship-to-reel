@@ -298,6 +298,41 @@
         color: var(--accent);
       }
 
+      /* ROADMAP-NEXT.md 2.2 — channel-constant bookends (PLAN §2 layer A: "einmal
+         schreiben, nie wieder anfassen"). Deliberately NOT brand-tokened (fixed
+         black/white, not var(--paper)/var(--accent)) — this is the one moment
+         that should look identical across every project the channel posts,
+         a fixed identity wrapper regardless of which brand plays inside it. */
+      .sting-fill {
+        background: #050505;
+      }
+      .sting-handle {
+        font-size: 68px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        color: #ffffff;
+      }
+      .outro-card-fill {
+        background: #050505;
+      }
+      .outro-card-body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        text-align: center;
+      }
+      .outro-card-handle {
+        font-size: 52px;
+        font-weight: 800;
+        color: #ffffff;
+      }
+      .outro-card-tagline {
+        font-size: 36px;
+        font-weight: 500;
+        color: #a3a3a3;
+      }
+
       /* Persistent brand watermark — no class="clip", so it stays visible the whole video. */
       #watermark {
         position: absolute;

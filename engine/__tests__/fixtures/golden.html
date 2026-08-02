@@ -309,6 +309,41 @@
         color: var(--accent);
       }
 
+      /* ROADMAP-NEXT.md 2.2 — channel-constant bookends (PLAN §2 layer A: "einmal
+         schreiben, nie wieder anfassen"). Deliberately NOT brand-tokened (fixed
+         black/white, not var(--paper)/var(--accent)) — this is the one moment
+         that should look identical across every project the channel posts,
+         a fixed identity wrapper regardless of which brand plays inside it. */
+      .sting-fill {
+        background: #050505;
+      }
+      .sting-handle {
+        font-size: 68px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+        color: #ffffff;
+      }
+      .outro-card-fill {
+        background: #050505;
+      }
+      .outro-card-body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+        text-align: center;
+      }
+      .outro-card-handle {
+        font-size: 52px;
+        font-weight: 800;
+        color: #ffffff;
+      }
+      .outro-card-tagline {
+        font-size: 36px;
+        font-weight: 500;
+        color: #a3a3a3;
+      }
+
       /* Persistent brand watermark — no class="clip", so it stays visible the whole video. */
       #watermark {
         position: absolute;
@@ -330,10 +365,15 @@
       data-start="0"
       data-width="1080"
       data-height="1920"
-      data-duration="10.7"
+      data-duration="12.5"
       data-fps="30"
     >
-      <section id="scene-0-hook" class="scene clip" data-start="0" data-duration="1.5" data-track-index="1">
+      <section id="scene-sting" class="scene clip" data-start="0" data-duration="0.8" data-track-index="2">
+        <div class="scene-fill sting-fill">
+          <p class="sting-handle anim">@your_handle</p>
+        </div>
+      </section>
+      <section id="scene-0-hook" class="scene clip" data-start="0.5" data-duration="1.5" data-track-index="1">
         <div class="scene-fill">
           <div class="bg-depth"></div>
 
@@ -344,7 +384,7 @@
       </div>
         </div>
       </section>
-      <section id="scene-1-problem" class="scene clip" data-start="1.2" data-duration="2.8" data-track-index="2">
+      <section id="scene-1-problem" class="scene clip" data-start="1.7" data-duration="2.8" data-track-index="2">
         <div class="scene-fill">
           <div class="bg-depth"></div>
 
@@ -356,7 +396,7 @@
       </div>
         </div>
       </section>
-      <section id="scene-2-code-diff" class="scene clip" data-start="3.7" data-duration="3.2" data-track-index="1">
+      <section id="scene-2-code-diff" class="scene clip" data-start="4.2" data-duration="3.2" data-track-index="1">
         <div class="scene-fill">
           <div class="bg-depth"></div>
 
@@ -369,7 +409,7 @@
       </div>
         </div>
       </section>
-      <section id="scene-3-result" class="scene clip" data-start="6.6" data-duration="2.4" data-track-index="2">
+      <section id="scene-3-result" class="scene clip" data-start="7.1" data-duration="2.4" data-track-index="2">
         <div class="scene-fill">
           <div class="bg-depth"></div>
 
@@ -380,7 +420,7 @@
       </div>
         </div>
       </section>
-      <section id="scene-4-outro" class="scene clip" data-start="8.7" data-duration="2" data-track-index="1">
+      <section id="scene-4-outro" class="scene clip" data-start="9.2" data-duration="2" data-track-index="1">
         <div class="scene-fill">
           <div class="bg-depth"></div>
 
@@ -392,27 +432,39 @@
       </div>
         </div>
       </section>
+      <section id="scene-outro-card" class="scene clip" data-start="10.9" data-duration="1.6" data-track-index="2">
+        <div class="scene-fill outro-card-fill">
+          <div class="outro-card-body">
+            <p class="outro-card-handle anim">@your_handle</p>
+            <p class="outro-card-tagline anim">New drops every week.</p>
+          </div>
+        </div>
+      </section>
       <div id="watermark">@your_handle</div>
       
     </div>
     <script>
       window.__timelines = window.__timelines || {};
       const tl = gsap.timeline({ paused: true });
-      tl.set("#scene-0-hook .scene-fill", { opacity: 1 }, 0);
-      tl.fromTo("#scene-0-hook .bg-depth", { x: -24, y: -16, scale: 1.1 }, { x: 24, y: 16, scale: 1.1, duration: 1.5, ease: "none" }, 0);
-      tl.from("#scene-0-hook .anim", { opacity: 0, y: 56, scale: 0.9, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 0.1);
-      tl.fromTo("#scene-1-problem .scene-fill", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, 1.2);
-      tl.fromTo("#scene-1-problem .bg-depth", { x: -24, y: -16, scale: 1.1 }, { x: 24, y: 16, scale: 1.1, duration: 3.1, ease: "none" }, 1.2);
-      tl.from("#scene-1-problem .anim", { opacity: 0, y: 56, scale: 0.9, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 1.5);
-      tl.fromTo("#scene-2-code-diff .scene-fill", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, 3.7);
-      tl.fromTo("#scene-2-code-diff .bg-depth", { x: -24, y: -16, scale: 1.1 }, { x: 24, y: 16, scale: 1.1, duration: 3.5, ease: "none" }, 3.7);
-      tl.from("#scene-2-code-diff .anim", { opacity: 0, y: 56, scale: 0.9, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 4);
-      tl.fromTo("#scene-3-result .scene-fill", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, 6.6);
-      tl.fromTo("#scene-3-result .bg-depth", { x: -24, y: -16, scale: 1.1 }, { x: 24, y: 16, scale: 1.1, duration: 2.7, ease: "none" }, 6.6);
-      tl.from("#scene-3-result .anim", { opacity: 0, y: 56, scale: 0.9, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 6.9);
-      tl.fromTo("#scene-4-outro .scene-fill", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, 8.7);
-      tl.fromTo("#scene-4-outro .bg-depth", { x: -24, y: -16, scale: 1.1 }, { x: 24, y: 16, scale: 1.1, duration: 2.3, ease: "none" }, 8.7);
-      tl.from("#scene-4-outro .anim", { opacity: 0, y: 56, scale: 0.9, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 9);
+      tl.set("#scene-sting .scene-fill", { opacity: 1 }, 0);
+      tl.fromTo("#scene-sting .sting-handle", { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.35, ease: "back.out(2)" }, 0);
+      tl.fromTo("#scene-0-hook .scene-fill", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, 0.5);
+      tl.fromTo("#scene-0-hook .bg-depth", { x: -24, y: -16, scale: 1.1 }, { x: 24, y: 16, scale: 1.1, duration: 1.8, ease: "none" }, 0.5);
+      tl.from("#scene-0-hook .anim", { opacity: 0, y: 56, scale: 0.9, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 0.8);
+      tl.fromTo("#scene-1-problem .scene-fill", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, 1.7);
+      tl.fromTo("#scene-1-problem .bg-depth", { x: -24, y: -16, scale: 1.1 }, { x: 24, y: 16, scale: 1.1, duration: 3.1, ease: "none" }, 1.7);
+      tl.from("#scene-1-problem .anim", { opacity: 0, y: 56, scale: 0.9, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 2);
+      tl.fromTo("#scene-2-code-diff .scene-fill", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, 4.2);
+      tl.fromTo("#scene-2-code-diff .bg-depth", { x: -24, y: -16, scale: 1.1 }, { x: 24, y: 16, scale: 1.1, duration: 3.5, ease: "none" }, 4.2);
+      tl.from("#scene-2-code-diff .anim", { opacity: 0, y: 56, scale: 0.9, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 4.5);
+      tl.fromTo("#scene-3-result .scene-fill", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, 7.1);
+      tl.fromTo("#scene-3-result .bg-depth", { x: -24, y: -16, scale: 1.1 }, { x: 24, y: 16, scale: 1.1, duration: 2.7, ease: "none" }, 7.1);
+      tl.from("#scene-3-result .anim", { opacity: 0, y: 56, scale: 0.9, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 7.4);
+      tl.fromTo("#scene-4-outro .scene-fill", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, 9.2);
+      tl.fromTo("#scene-4-outro .bg-depth", { x: -24, y: -16, scale: 1.1 }, { x: 24, y: 16, scale: 1.1, duration: 2.3, ease: "none" }, 9.2);
+      tl.from("#scene-4-outro .anim", { opacity: 0, y: 56, scale: 0.9, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 9.5);
+      tl.fromTo("#scene-outro-card .scene-fill", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, 10.9);
+      tl.from("#scene-outro-card .anim", { opacity: 0, y: 40, duration: 0.5, stagger: 0.1, ease: "power3.out" }, 11.2);
       window.__timelines["main"] = tl;
     </script>
   </body>
