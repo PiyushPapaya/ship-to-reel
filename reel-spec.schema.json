@@ -149,7 +149,32 @@
         "palette": { "$ref": "#/$defs/palette" },
         "logo": { "type": "string" },
         "publishable": { "type": "boolean" },
-        "notes": { "type": "string" }
+        "notes": { "type": "string" },
+        "signature": { "$ref": "#/$defs/signature" }
+      }
+    },
+
+    "signature": {
+      "description": "ROADMAP-NEXT.md 1.2 - a project's real visual signature, so distinctiveness varies per brand instead of being just a palette swap. Every field is optional and defaults to the pre-1.2 look (no grain, plain crossfade, no motif, default type treatment) - omitting this block entirely reproduces the exact prior render.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "grain": { "type": "boolean", "default": false, "description": "Subtle static noise texture over the whole frame." },
+        "transition": {
+          "enum": ["crossfade", "wipe", "iris"],
+          "default": "crossfade",
+          "description": "The seam between scenes. crossfade = original plain opacity fade."
+        },
+        "motif": {
+          "enum": ["none", "corner-mark", "scan-line"],
+          "default": "none",
+          "description": "A recurring per-scene motion element beyond the ghost index numeral."
+        },
+        "type_treatment": {
+          "enum": ["default", "oversized-caps", "mono-accent"],
+          "default": "default",
+          "description": "A distinctive headline/eyebrow type style beyond the base font token."
+        }
       }
     },
 

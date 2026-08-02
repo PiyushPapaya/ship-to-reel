@@ -16,5 +16,11 @@
   },
   "logo": "logo.svg",
   "publishable": true,
-  "notes": "Starter brand (neutral). Copy-me template for new projects: duplicate the folder, replace the tokens, drop in logo.svg. Can be pulled automatically from Figma/website via extract-brand-pack."
+  "notes": "Starter brand (neutral). Copy-me template for new projects: duplicate the folder, replace the tokens, drop in logo.svg. Can be pulled automatically from Figma/website via extract-brand-pack.",
+  "signature": {
+    "grain": true,
+    "transition": "wipe",
+    "motif": "corner-mark",
+    "type_treatment": "mono-accent"
+  }
 }

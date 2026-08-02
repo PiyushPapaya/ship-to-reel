@@ -47,11 +47,17 @@ for (let i = 1; i < scenes.length; i++) {
     prev.track !== cur.track ? undefined : `both on track ${prev.track} — hyperframes rejects same-track overlap`
   );
 
+  // ROADMAP-NEXT.md 1.2: brand.signature.transition swaps the plain opacity
+  // crossfade for a clip-path reveal (wipe/iris) — still a real seam (no hard
+  // cut), just a different reveal shape, so either counts as satisfying this
+  // invariant.
   const fadeRe = new RegExp(`tl\\.fromTo\\("#${cur.id} \\.scene-fill",\\s*\\{\\s*opacity:\\s*0\\s*\\}`);
+  const clipRevealRe = new RegExp(`tl\\.fromTo\\("#${cur.id} \\.scene-fill",\\s*\\{\\s*clipPath:`);
+  const hasSeamTween = fadeRe.test(html) || clipRevealRe.test(html);
   record(
     `${cur.id}: has a crossfade-in tween on .scene-fill`,
-    fadeRe.test(html),
-    fadeRe.test(html) ? undefined : "no tl.fromTo(...opacity:0...) found for this scene's .scene-fill"
+    hasSeamTween,
+    hasSeamTween ? undefined : "no tl.fromTo(...opacity:0...) or clip-path reveal found for this scene's .scene-fill"
   );
 }
 

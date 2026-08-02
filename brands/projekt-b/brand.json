@@ -16,5 +16,11 @@
   },
   "logo": "logo.svg",
   "publishable": true,
-  "notes": "Second project, dark/warm editorial palette (deliberately distinct from projekt-a's light/blue starter) — proves Phase 5's scaling claim: a new project is only a new brands/ folder, no engine changes."
+  "notes": "Second project, dark/warm editorial palette (deliberately distinct from projekt-a's light/blue starter) — proves Phase 5's scaling claim: a new project is only a new brands/ folder, no engine changes.",
+  "signature": {
+    "grain": true,
+    "transition": "iris",
+    "motif": "scan-line",
+    "type_treatment": "oversized-caps"
+  }
 }

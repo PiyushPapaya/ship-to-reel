@@ -14,6 +14,12 @@
         --safe-right: {{SAFE_RIGHT}}px;
         --caption-size: {{CAPTION_SIZE}}px;
         --caption-font: {{CAPTION_FONT}};
+        /* ROADMAP-NEXT.md 1.1 patch-loop knobs (engine/patch-loop.mjs) — a failing
+           aesthetic score adjusts these instead of hand-editing this file. Default
+           1 reproduces the exact pre-patch-loop visuals; see DECISIONS.md. */
+        --index-scale: {{INDEX_SCALE}};
+        --type-scale: {{TYPE_SCALE}};
+        --glow: {{GLOW}};
       }
       * { box-sizing: border-box; }
       body {
@@ -52,9 +58,9 @@
         position: absolute;
         inset: -12%;
         background:
-          radial-gradient(760px circle at 15% 14%, color-mix(in srgb, var(--accent) 40%, transparent), transparent 58%),
-          radial-gradient(680px circle at 88% 86%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 55%),
-          radial-gradient(900px circle at 50% 50%, color-mix(in srgb, var(--accent) 8%, transparent), transparent 70%);
+          radial-gradient(760px circle at 15% 14%, color-mix(in srgb, var(--accent) calc(40% * var(--glow, 1)), transparent), transparent 58%),
+          radial-gradient(680px circle at 88% 86%, color-mix(in srgb, var(--accent) calc(30% * var(--glow, 1)), transparent), transparent 55%),
+          radial-gradient(900px circle at 50% 50%, color-mix(in srgb, var(--accent) calc(8% * var(--glow, 1)), transparent), transparent 70%);
         pointer-events: none;
       }
       .bg-capture {
@@ -93,7 +99,7 @@
         position: absolute;
         right: -0.06em;
         bottom: -0.14em;
-        font-size: 640px;
+        font-size: calc(640px * var(--index-scale, 1));
         font-weight: 800;
         line-height: 1;
         letter-spacing: -0.04em;
@@ -140,14 +146,14 @@
         background: var(--accent);
       }
       .headline {
-        font-size: 92px;
+        font-size: calc(92px * var(--type-scale, 1));
         font-weight: 800;
         line-height: 1.02;
         letter-spacing: -0.02em;
         margin: 0;
       }
       .body {
-        font-size: 46px;
+        font-size: calc(46px * var(--type-scale, 1));
         font-weight: 500;
         line-height: 1.25;
         color: #3f3f46;
@@ -219,6 +225,79 @@
       }
       .captions .cw { display: inline-block; }
       .captions.boxed .cw { padding: 2px 10px; border-radius: 8px; }
+      /* ROADMAP-NEXT.md 1.2 — brand.signature: a real per-project visual signature,
+         not just a palette swap. Every rule here is a no-op unless assemble.mjs
+         emits the matching class/element (driven by brands/<slug>/brand.json's
+         signature block), so a brand without `signature` renders byte-identical
+         to before this pass. */
+
+      /* grain: a static (deterministic, non-animated) noise texture over the
+         whole frame — an inline SVG feTurbulence data URI, not a network asset. */
+      #grain {
+        position: absolute;
+        inset: 0;
+        z-index: 60;
+        pointer-events: none;
+        opacity: 0.05;
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+        background-size: 320px 320px;
+      }
+
+      /* motif: corner-mark — a small recurring accent tick, distinct from the
+         watermark, that plays the same entrance beat as the rest of a scene's
+         content (class="anim" — no bespoke tween needed). */
+      .motif-corner {
+        position: absolute;
+        top: var(--safe-top);
+        right: calc(var(--safe-right) + 64px);
+        width: 64px;
+        height: 12px;
+        border-radius: 6px;
+        background: var(--accent);
+      }
+      /* motif: scan-line — a thin light bar that sweeps down the frame once per
+         scene (engine/assemble.mjs gives it its own GSAP tween, same span as
+         .bg-depth's parallax). */
+      .motif-scan {
+        position: absolute;
+        top: -6%;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        opacity: 0.8;
+        pointer-events: none;
+      }
+
+      /* type_treatment: distinctive headline/eyebrow styles beyond the base font
+         token, scoped under a class assemble.mjs puts on #root. */
+      #root.tt-oversized-caps .headline {
+        text-transform: uppercase;
+        font-size: calc(104px * var(--type-scale, 1));
+        letter-spacing: -0.01em;
+      }
+      #root.tt-oversized-caps .eyebrow {
+        font-size: 34px;
+        letter-spacing: 0.22em;
+      }
+      #root.tt-mono-accent .eyebrow {
+        font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+        letter-spacing: 0;
+      }
+      #root.tt-mono-accent .eyebrow::before {
+        content: "[ ";
+        width: auto;
+        height: auto;
+        background: none;
+        color: var(--accent);
+        font-family: inherit;
+      }
+      #root.tt-mono-accent .eyebrow::after {
+        content: " ]";
+        color: var(--accent);
+      }
+
       /* Persistent brand watermark — no class="clip", so it stays visible the whole video. */
       #watermark {
         position: absolute;
@@ -235,6 +314,7 @@
   <body>
     <div
       id="root"
+      class="{{ROOT_CLASS}}"
       data-composition-id="main"
       data-start="0"
       data-width="1080"
@@ -244,6 +324,7 @@
     >
 {{CLIPS}}
       <div id="watermark">{{WATERMARK_TEXT}}</div>
+      {{GRAIN}}
     </div>
     <script>
       window.__timelines = window.__timelines || {};

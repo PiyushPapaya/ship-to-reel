@@ -29,8 +29,29 @@ const MAX_SEAM_FRACTION = 0.4; // never eat more than 40% of the shorter neighbo
 // simplest way to guarantee no same-track overlap regardless of seam adjacency.
 const BROLL_TRACK_BASE = 20;
 
-function seamFor(pace, prevDur, nextDur) {
-  const wanted = SEAM_BY_PACE[pace] ?? 0.4;
+// --- ROADMAP-NEXT.md 1.1 patch-loop knobs -------------------------------------
+// engine/patch-loop.mjs is the only intended writer of <outDir>/patch/knobs.json.
+// Every knob defaults to 1 (== exact pre-patch-loop visuals, zero regression for
+// any build that never runs the patch loop). Values are clamped defensively here
+// too (not just by patch-loop.mjs) so a hand-edited/corrupt knobs.json can't push
+// the render off-frame.
+const KNOB_DEFAULTS = { parallaxBoost: 1, seamBoost: 1, staggerBoost: 1, indexScale: 1, typeScale: 1, glow: 1 };
+const KNOB_MIN = 0.5;
+const KNOB_MAX = 1.8;
+function clampKnob(n) { return Math.min(KNOB_MAX, Math.max(KNOB_MIN, Number.isFinite(n) ? n : 1)); }
+
+function readKnobs(outDir) {
+  const p = join(resolve(outDir), "patch", "knobs.json");
+  if (!existsSync(p)) return { ...KNOB_DEFAULTS };
+  let parsed = {};
+  try { parsed = JSON.parse(readFileSync(p, "utf8")); } catch { parsed = {}; }
+  const knobs = { ...KNOB_DEFAULTS };
+  for (const k of Object.keys(KNOB_DEFAULTS)) knobs[k] = clampKnob(parsed[k]);
+  return knobs;
+}
+
+function seamFor(pace, prevDur, nextDur, seamBoost = 1) {
+  const wanted = (SEAM_BY_PACE[pace] ?? 0.4) * seamBoost;
   return round1(Math.min(wanted, MAX_SEAM_FRACTION * Math.min(prevDur, nextDur)));
 }
 
@@ -71,6 +92,16 @@ export function assemble(specPath, outDir) {
   const { meta, channel, brand, tempo } = spec;
   const pace = tempo?.pace ?? "medium";
   const ctx = { brand, channel, voice: spec.voice };
+  const knobs = readKnobs(outDir);
+  // ROADMAP-NEXT.md 1.2 — brand.signature: real per-project distinctiveness
+  // (grain texture, a non-crossfade transition, a recurring motion motif, a
+  // distinctive type treatment), not just a palette swap. Every field defaults
+  // to the pre-1.2 look, so a brand without `signature` is byte-identical.
+  const sig = brand.signature ?? {};
+  const sigTransition = sig.transition ?? "crossfade";
+  const sigMotif = sig.motif ?? "none";
+  const sigGrain = sig.grain ?? false;
+  const sigType = sig.type_treatment ?? "default";
 
   // Master-timeline: scenes overlap by a seam so the next scene's fill crossfades
   // over the previous one instead of a hard cut (PLAN §4 "erzwungene Seams").
@@ -128,7 +159,7 @@ export function assemble(specPath, outDir) {
   const timing = [];
   spec.beats.forEach((beat, i) => {
     const dur = durs[i];
-    const seam = i === 0 ? 0 : seamFor(pace, durs[i - 1], dur);
+    const seam = i === 0 ? 0 : seamFor(pace, durs[i - 1], dur, knobs.seamBoost);
     const start = round1(t - seam);
     const id = `scene-${i}-${beat.type}`;
     const inner = renderScene(beat, ctx);
@@ -157,6 +188,10 @@ export function assemble(specPath, outDir) {
     // or broll) that's already this scene's distinctive element.
     const showIndex = !useCapture && !useBroll && beat.type !== "result" && beat.type !== "outro";
     const indexTag = showIndex ? `\n          <div class="stage-index">${String(i + 1).padStart(2, "0")}</div>` : "";
+    // ROADMAP-NEXT.md 1.2 motif markup. corner-mark reuses the existing ".anim"
+    // stagger tween (no bespoke timing needed); scan-line gets its own tween
+    // below, scoped to the same seam+dur span as the depth parallax.
+    const motifTag = sigMotif === "corner-mark" ? `\n          <div class="motif-corner anim"></div>` : sigMotif === "scan-line" ? `\n          <div class="motif-scan"></div>` : "";
 
     const narration = narrationByBeat?.get(i);
     let audioTag = "";
@@ -172,6 +207,7 @@ export function assemble(specPath, outDir) {
         `          <div class="${bgClass}"${bgStyle}></div>\n` +
         (useCapture || useBroll ? `          <div class="scrim"></div>\n` : "") +
         indexTag +
+        motifTag +
         `\n        ${inner}\n` +
         `        </div>${audioTag}\n` +
         `      </section>`
@@ -180,25 +216,58 @@ export function assemble(specPath, outDir) {
     if (i === 0) {
       // First scene has nothing to crossfade from — it's simply opaque from t=0.
       tweens.push(`      tl.set("#${id} .scene-fill", { opacity: 1 }, 0);`);
+    } else if (sigTransition === "wipe") {
+      // ROADMAP-NEXT.md 1.2: reveals top-down via clip-path instead of a plain
+      // fade — opacity stays fixed at 1 (the fill's own opaque background), only
+      // the visible region grows.
+      tweens.push(`      tl.set("#${id} .scene-fill", { opacity: 1 }, ${start});`);
+      tweens.push(
+        `      tl.fromTo("#${id} .scene-fill", { clipPath: "inset(0% 0% 100% 0%)" }, { clipPath: "inset(0% 0% 0% 0%)", duration: ${seam}, ease: "none" }, ${start});`
+      );
+    } else if (sigTransition === "iris") {
+      // ROADMAP-NEXT.md 1.2: reveals via an expanding circle instead of a plain
+      // fade. Overshoots to 150% so the circle always fully covers the 1080x1920
+      // frame regardless of clip-path's exact percentage-basis math.
+      tweens.push(`      tl.set("#${id} .scene-fill", { opacity: 1 }, ${start});`);
+      tweens.push(
+        `      tl.fromTo("#${id} .scene-fill", { clipPath: "circle(0% at 50% 50%)" }, { clipPath: "circle(150% at 50% 50%)", duration: ${seam}, ease: "none" }, ${start});`
+      );
     } else {
       tweens.push(
         `      tl.fromTo("#${id} .scene-fill", { opacity: 0 }, { opacity: 1, duration: ${seam}, ease: "none" }, ${start});`
       );
     }
+    if (sigMotif === "scan-line") {
+      // Transform-only motion (y, not top) — hyperframes lint flags layout-affecting
+      // properties as a stutter risk under seek-by-frame capture; CSS `.motif-scan`
+      // sets the -6% starting `top`, this tween only ever translates from there.
+      tweens.push(
+        `      tl.fromTo("#${id} .motif-scan", { y: 0 }, { y: 2112, duration: ${round1(dur + seam)}, ease: "power1.inOut" }, ${start});`
+      );
+    }
     // Depth parallax: the background layer drifts+scales across the full scene
     // span, independently of the content entrance — the "flat slide" complaint
     // from Phase 4's aesthetic score was fade-only motion with no depth cue.
+    // parallaxBoost (patch-loop knob) scales the travel distance around the same
+    // 1.0 rest-scale midpoint, so a knob of 1 reproduces the original numbers exactly.
+    const pFrom = { x: round1(-24 * knobs.parallaxBoost), y: round1(-16 * knobs.parallaxBoost), scale: round1(1 + 0.06 * knobs.parallaxBoost) };
+    const pTo = { x: round1(24 * knobs.parallaxBoost), y: round1(16 * knobs.parallaxBoost), scale: round1(1 + 0.14 * knobs.parallaxBoost) };
     tweens.push(
-      `      tl.fromTo("#${id} .bg-depth", { x: -24, y: -16, scale: 1.06 }, { x: 24, y: 16, scale: 1.14, duration: ${round1(dur + seam)}, ease: "none" }, ${start});`
+      `      tl.fromTo("#${id} .bg-depth", { x: ${pFrom.x}, y: ${pFrom.y}, scale: ${pFrom.scale} }, { x: ${pTo.x}, y: ${pTo.y}, scale: ${pTo.scale}, duration: ${round1(dur + seam)}, ease: "none" }, ${start});`
     );
     if (useBroll) {
       tweens.push(
-        `      tl.fromTo("#${brollId}", { x: -24, y: -16, scale: 1.06 }, { x: 24, y: 16, scale: 1.14, duration: ${round1(dur + seam)}, ease: "none" }, ${start});`
+        `      tl.fromTo("#${brollId}", { x: ${pFrom.x}, y: ${pFrom.y}, scale: ${pFrom.scale} }, { x: ${pTo.x}, y: ${pTo.y}, scale: ${pTo.scale}, duration: ${round1(dur + seam)}, ease: "none" }, ${start});`
       );
     }
     // Content entrance: rises + scales in once the crossfade has mostly landed.
+    // staggerBoost (patch-loop knob) widens the per-element stagger + rise for a
+    // clearer hierarchy read; 1 reproduces the original 56/0.94/0.12 numbers exactly.
+    const entranceY = round1(56 * knobs.staggerBoost);
+    const entranceScale = round1(Math.max(0.8, 1 - 0.06 * knobs.staggerBoost));
+    const entranceStagger = round1(0.12 * knobs.staggerBoost);
     tweens.push(
-      `      tl.from("#${id} .anim", { opacity: 0, y: 56, scale: 0.94, duration: 0.6, stagger: 0.12, ease: "power3.out" }, ${round1(start + seam * 0.6 + 0.1)});`
+      `      tl.from("#${id} .anim", { opacity: 0, y: ${entranceY}, scale: ${entranceScale}, duration: 0.6, stagger: ${entranceStagger}, ease: "power3.out" }, ${round1(start + seam * 0.6 + 0.1)});`
     );
     t = start + dur;
   });
@@ -222,6 +291,11 @@ export function assemble(specPath, outDir) {
     TIMELINE_BODY: tweens.join("\n"),
     WATERMARK_TEXT: wm.text ?? channel.handle ?? "",
     WATERMARK_OPACITY: wm.opacity ?? 0.7,
+    INDEX_SCALE: knobs.indexScale,
+    TYPE_SCALE: knobs.typeScale,
+    GLOW: knobs.glow,
+    ROOT_CLASS: sigType === "default" ? "" : `tt-${sigType}`,
+    GRAIN: sigGrain ? `<div id="grain"></div>` : "",
   };
   for (const [k, v] of Object.entries(fill)) {
     html = html.replaceAll(`{{${k}}}`, String(v));
