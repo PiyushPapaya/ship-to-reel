@@ -50,14 +50,22 @@ function tryMusicGen(prompt, outPath, durationSec) {
   // actually configured. No bundled model/weights: installing facebook/musicgen
   // (torch + audiocraft, multi-GB) is out of scope for this pass, matching
   // broll.mjs's discipline for its four generative-video providers.
-  const cmdTemplate = process.env.MUSICGEN_CMD; // e.g. "python -m audiocraft.generate --prompt {prompt} --duration {duration} --out {out}"
-  if (!cmdTemplate) return { status: "skipped", missing: ["MUSICGEN_CMD"] };
-  const cmd = cmdTemplate
-    .replace("{prompt}", JSON.stringify(prompt))
-    .replace("{duration}", String(Math.ceil(durationSec)))
-    .replace("{out}", outPath);
-  const isWin = process.platform === "win32";
-  const r = spawnSync(cmd, { shell: true, encoding: "utf8", cwd: root });
+  //
+  // MUSICGEN_CMD names the executable only (e.g. "python" or a wrapper script
+  // path) — prompt/duration/out are always passed as separate argv entries via
+  // spawnSync's array form with shell:false, never interpolated into a shell
+  // string. voice.music_mood (the source of `prompt`) is project-authored data,
+  // not trusted user input, but building a shell command by string substitution
+  // is the wrong shape regardless of the source — this avoids it entirely, so
+  // no value here can ever be interpreted by a shell.
+  const cmd = process.env.MUSICGEN_CMD;
+  if (!cmd) return { status: "skipped", missing: ["MUSICGEN_CMD"] };
+  const extraArgs = (process.env.MUSICGEN_ARGS ?? "").split(" ").filter(Boolean);
+  const r = spawnSync(
+    cmd,
+    [...extraArgs, "--prompt", prompt, "--duration", String(Math.ceil(durationSec)), "--out", outPath],
+    { encoding: "utf8", cwd: root }
+  );
   if (r.status !== 0 || !existsSync(outPath)) {
     return { status: "error", detail: (r.stderr || r.error?.message || "MUSICGEN_CMD failed").slice(-500) };
   }
