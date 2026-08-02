@@ -7,9 +7,15 @@
   "engines": {
     "node": ">=22"
   },
+  "bin": {
+    "reel": "bin/reel.mjs"
+  },
   "scripts": {
     "validate": "node engine/validate.mjs",
     "test": "node engine/validate.mjs",
+    "test:unit": "node --test engine/__tests__/*.test.mjs",
+    "test:all": "npm run validate && npm run test:unit",
+    "reel": "node bin/reel.mjs",
     "collect": "node engine/collect.mjs",
     "resolve-spec": "node engine/resolve-spec.mjs",
     "assemble": "node engine/assemble.mjs",

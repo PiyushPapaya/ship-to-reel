@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>projekt-a-bugfix-2026-07-29</title>
+    <!-- GSAP vendored locally by assemble.mjs (no CDN → deterministic, no SRI/network risk). -->
+    <script src="./gsap.min.js"></script>
+    <style>
+      :root {
+        --paper: #ffffff;
+        --ink: #0a0a0a;
+        --ink-inverse: #ffffff;
+        --accent: #5B8DEF;
+        --surface: #f4f4f5;
+        --line: #e5e5e5;
+        --muted: #b3b3b3;
+        --font: "Inter", system-ui, sans-serif;
+        --radius-pill: 128px;
+        --radius-chip: 40px;
+        --radius-card: 48px;
+        --shadow-badge: 0 4px 12px rgba(10, 10, 10, 0.06);
+        --safe-top: 220px;
+        --safe-bottom: 320px;
+        --safe-right: 120px;
+        --caption-size: 64px;
+        --caption-font: "Inter", system-ui, sans-serif;
+        /* ROADMAP-NEXT.md 1.1 patch-loop knobs (engine/patch-loop.mjs) — a failing
+           aesthetic score adjusts these instead of hand-editing this file. Default
+           1 reproduces the exact pre-patch-loop visuals; see DECISIONS.md. */
+        --index-scale: 1;
+        --type-scale: 1;
+        --glow: 1;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: #000;
+        font-family: var(--font);
+        color: var(--ink);
+      }
+      #root {
+        position: relative;
+        width: 1080px;
+        height: 1920px;
+        overflow: hidden;
+      }
+      /* Each scene is a full-bleed clip; it stays transparent so its .scene-fill child
+         (never the clip itself — HyperFrames owns the clip's own show/hide) can crossfade
+         over the previous scene during a seam overlap. */
+      .scene {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+      }
+      .scene-fill {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: var(--paper);
+        overflow: hidden;
+      }
+      /* Decorative depth layer behind .stage — real DOM node (not a pseudo-element)
+         so GSAP can parallax-drift it; plain color-mix blobs by default, or a
+         composited UI screen-capture frame on the hook scene (Phase 3b material). */
+      .bg-depth {
+        position: absolute;
+        inset: -12%;
+        background:
+          radial-gradient(760px circle at 15% 14%, color-mix(in srgb, var(--accent) calc(40% * var(--glow, 1)), transparent), transparent 58%),
+          radial-gradient(680px circle at 88% 86%, color-mix(in srgb, var(--accent) calc(30% * var(--glow, 1)), transparent), transparent 55%),
+          radial-gradient(900px circle at 50% 50%, color-mix(in srgb, var(--accent) calc(8% * var(--glow, 1)), transparent), transparent 70%);
+        pointer-events: none;
+      }
+      .bg-capture {
+        background-size: cover;
+        background-position: center top;
+        filter: saturate(0.75) brightness(0.85);
+      }
+      /* Broll beats swap the opaque paper fill for a hole the root-level <video>
+         (a sibling, not a descendant — hyperframes owns media playback only for
+         direct root children) shows through; .bg-depth's gradients + .scrim still
+         paint on top of it for brand tint and caption legibility. */
+      .scene-fill-broll {
+        background: transparent;
+      }
+      .bg-broll-video {
+        position: absolute;
+        inset: -12%;
+        width: 124%;
+        height: 124%;
+        object-fit: cover;
+        filter: saturate(0.8) brightness(0.75);
+        pointer-events: none;
+      }
+      .scrim {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, transparent 35%, var(--paper) 82%);
+        pointer-events: none;
+      }
+      /* Real layout element (assemble.mjs decides per-beat whether to emit it),
+         not decoration: a giant beat-number bleeding off the corner. It fills the
+         lower frame that content-block centering left empty (Phase 4's honest
+         composition complaint), and doubles as a wayfinding/distinctiveness cue —
+         "you're on beat 2 of 5" — instead of just another gradient. */
+      .stage-index {
+        position: absolute;
+        right: -0.06em;
+        bottom: -0.14em;
+        font-size: calc(640px * var(--index-scale, 1));
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        color: color-mix(in srgb, var(--accent) 12%, var(--paper));
+        pointer-events: none;
+        user-select: none;
+      }
+      .stage {
+        position: absolute;
+        top: var(--safe-top);
+        right: var(--safe-right);
+        bottom: var(--safe-bottom);
+        left: 64px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        padding-top: 9%;
+        gap: 28px;
+      }
+      /* result/outro are short "reveal" beats — center them instead of the
+         top-anchored rule-of-thirds layout the info-dense beats use, so the big
+         metric/sign-off doesn't look pinned to the top of an otherwise-empty frame. */
+      [id$="-result"] .stage,
+      [id$="-outro"] .stage {
+        justify-content: center;
+        padding-top: 0;
+      }
+      .eyebrow {
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+        display: flex;
+        align-items: center;
+        gap: 18px;
+      }
+      .eyebrow::before {
+        content: "";
+        display: block;
+        width: 48px;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--accent);
+      }
+      .headline {
+        font-size: calc(92px * var(--type-scale, 1));
+        font-weight: 800;
+        line-height: 1.02;
+        letter-spacing: -0.02em;
+        margin: 0;
+      }
+      .body {
+        font-size: calc(46px * var(--type-scale, 1));
+        font-weight: 500;
+        line-height: 1.25;
+        color: #3f3f46;
+        margin: 0;
+      }
+      .card {
+        background: var(--surface);
+        border: 2px solid var(--line);
+        border-radius: var(--radius-card, 40px);
+        padding: 44px 48px;
+        box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.35);
+      }
+      .metric {
+        font-size: 200px;
+        font-weight: 800;
+        line-height: 0.9;
+        letter-spacing: -0.03em;
+        color: var(--accent);
+        margin: 0;
+      }
+      .code {
+        font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+        font-size: 40px;
+        line-height: 1.5;
+        white-space: pre;
+      }
+      .code .file { color: #52525b; font-size: 32px; display: block; margin-bottom: 20px; }
+      .code .del { color: #c62828; display: block; }
+      .code .add { color: #1b7a44; display: block; }
+      .outro {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+        text-align: center;
+      }
+      .outro .handle { font-size: 56px; font-weight: 800; }
+      /* Word-accurate captions (Phase 3c, engine/align-captions.mjs). Position/size
+         are channel's call, accent highlight color is brand's — the merge rule from
+         PLAN §1's "Grenzfall Captions". Frame-relative and scoped inside each scene's
+         .scene-fill, so it shows/hides with that scene's own clip lifecycle. */
+      .captions {
+        position: absolute;
+        left: 64px;
+        right: var(--safe-right);
+        height: calc(var(--caption-size) * 1.6);
+        font-family: var(--caption-font, var(--font));
+        font-size: var(--caption-size);
+        font-weight: 700;
+        line-height: 1.35;
+        color: var(--ink);
+        text-align: center;
+        z-index: 40;
+      }
+      .captions.pos-top { top: var(--safe-top); }
+      .captions.pos-center { top: 50%; transform: translateY(-50%); }
+      .captions.pos-lower-third { bottom: calc(var(--safe-bottom) + 40px); }
+      .captions.pos-bottom { bottom: var(--safe-bottom); }
+      /* Only one .cline (a short rolling chunk of words) is visible at a time —
+         they stack in the same box and cross-fade via opacity, driven by
+         align-captions.mjs's per-chunk tl.set calls. */
+      .captions .cline {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+      }
+      .captions .cw { display: inline-block; }
+      .captions.boxed .cw { padding: 2px 10px; border-radius: 8px; }
+      /* ROADMAP-NEXT.md 1.2 — brand.signature: a real per-project visual signature,
+         not just a palette swap. Every rule here is a no-op unless assemble.mjs
+         emits the matching class/element (driven by brands/<slug>/brand.json's
+         signature block), so a brand without `signature` renders byte-identical
+         to before this pass. */
+
+      /* grain: a static (deterministic, non-animated) noise texture over the
+         whole frame — an inline SVG feTurbulence data URI, not a network asset. */
+      #grain {
+        position: absolute;
+        inset: 0;
+        z-index: 60;
+        pointer-events: none;
+        opacity: 0.05;
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+        background-size: 320px 320px;
+      }
+
+      /* motif: corner-mark — a small recurring accent tick, distinct from the
+         watermark, that plays the same entrance beat as the rest of a scene's
+         content (class="anim" — no bespoke tween needed). */
+      .motif-corner {
+        position: absolute;
+        top: var(--safe-top);
+        right: calc(var(--safe-right) + 64px);
+        width: 64px;
+        height: 12px;
+        border-radius: 6px;
+        background: var(--accent);
+      }
+      /* motif: scan-line — a thin light bar that sweeps down the frame once per
+         scene (engine/assemble.mjs gives it its own GSAP tween, same span as
+         .bg-depth's parallax). */
+      .motif-scan {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 6px;
+        background: linear-gradient(90deg, transparent, var(--accent), transparent);
+        opacity: 0.8;
+        pointer-events: none;
+      }
+
+      /* type_treatment: distinctive headline/eyebrow styles beyond the base font
+         token, scoped under a class assemble.mjs puts on #root. */
+      #root.tt-oversized-caps .headline {
+        text-transform: uppercase;
+        font-size: calc(104px * var(--type-scale, 1));
+        letter-spacing: -0.01em;
+      }
+      #root.tt-oversized-caps .eyebrow {
+        font-size: 34px;
+        letter-spacing: 0.22em;
+      }
+      #root.tt-mono-accent .eyebrow {
+        font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+        letter-spacing: 0;
+      }
+      #root.tt-mono-accent .eyebrow::before {
+        content: "[ ";
+        width: auto;
+        height: auto;
+        background: none;
+        color: var(--accent);
+        font-family: inherit;
+      }
+      #root.tt-mono-accent .eyebrow::after {
+        content: " ]";
+        color: var(--accent);
+      }
+
+      /* Persistent brand watermark — no class="clip", so it stays visible the whole video. */
+      #watermark {
+        position: absolute;
+        left: 48px;
+        bottom: calc(var(--safe-bottom) - 48px);
+        font-size: 34px;
+        font-weight: 700;
+        color: var(--ink);
+        opacity: 0.7;
+        z-index: 50;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      class=""
+      data-composition-id="main"
+      data-start="0"
+      data-width="1080"
+      data-height="1920"
+      data-duration="10.7"
+      data-fps="30"
+    >
+      <section id="scene-0-hook" class="scene clip" data-start="0" data-duration="1.5" data-track-index="1">
+        <div class="scene-fill">
+          <div class="bg-depth"></div>
+
+          <div class="stage-index">01</div>
+        <div class="stage">
+        <p class="eyebrow anim">Hook</p>
+        <h1 class="headline anim">This bug cost us three weeks.</h1>
+      </div>
+        </div>
+      </section>
+      <section id="scene-1-problem" class="scene clip" data-start="1.2" data-duration="2.8" data-track-index="2">
+        <div class="scene-fill">
+          <div class="bg-depth"></div>
+
+          <div class="stage-index">02</div>
+        <div class="stage">
+        <p class="eyebrow anim">The problem</p>
+        <h1 class="headline anim">Race condition on login</h1>
+        <p class="body anim">Two requests, one token — sometimes empty.</p>
+      </div>
+        </div>
+      </section>
+      <section id="scene-2-code-diff" class="scene clip" data-start="3.7" data-duration="3.2" data-track-index="1">
+        <div class="scene-fill">
+          <div class="bg-depth"></div>
+
+          <div class="stage-index">03</div>
+        <div class="stage">
+        <p class="eyebrow anim">The fix</p>
+        <div class="card anim">
+          <div class="code"><span class="file">auth/session.ts</span><span class="del">- await getToken()</span><span class="add">+ await getToken({ retry: true })</span></div>
+        </div>
+      </div>
+        </div>
+      </section>
+      <section id="scene-3-result" class="scene clip" data-start="6.6" data-duration="2.4" data-track-index="2">
+        <div class="scene-fill">
+          <div class="bg-depth"></div>
+
+        <div class="stage">
+        <p class="eyebrow anim">Result</p>
+        <p class="metric anim">0 errors</p>
+        <p class="body anim">across 10k logins</p>
+      </div>
+        </div>
+      </section>
+      <section id="scene-4-outro" class="scene clip" data-start="8.7" data-duration="2" data-track-index="1">
+        <div class="scene-fill">
+          <div class="bg-depth"></div>
+
+        <div class="stage">
+        <div class="outro">
+          <p class="handle anim">@your_handle</p>
+          <p class="body anim">Follow for more.</p>
+        </div>
+      </div>
+        </div>
+      </section>
+      <div id="watermark">@your_handle</div>
+      
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      tl.set("#scene-0-hook .scene-fill", { opacity: 1 }, 0);
+      tl.fromTo("#scene-0-hook .bg-depth", { x: -24, y: -16, scale: 1.1 }, { x: 24, y: 16, scale: 1.1, duration: 1.5, ease: "none" }, 0);
+      tl.from("#scene-0-hook .anim", { opacity: 0, y: 56, scale: 0.9, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 0.1);
+      tl.fromTo("#scene-1-problem .scene-fill", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, 1.2);
+      tl.fromTo("#scene-1-problem .bg-depth", { x: -24, y: -16, scale: 1.1 }, { x: 24, y: 16, scale: 1.1, duration: 3.1, ease: "none" }, 1.2);
+      tl.from("#scene-1-problem .anim", { opacity: 0, y: 56, scale: 0.9, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 1.5);
+      tl.fromTo("#scene-2-code-diff .scene-fill", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, 3.7);
+      tl.fromTo("#scene-2-code-diff .bg-depth", { x: -24, y: -16, scale: 1.1 }, { x: 24, y: 16, scale: 1.1, duration: 3.5, ease: "none" }, 3.7);
+      tl.from("#scene-2-code-diff .anim", { opacity: 0, y: 56, scale: 0.9, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 4);
+      tl.fromTo("#scene-3-result .scene-fill", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, 6.6);
+      tl.fromTo("#scene-3-result .bg-depth", { x: -24, y: -16, scale: 1.1 }, { x: 24, y: 16, scale: 1.1, duration: 2.7, ease: "none" }, 6.6);
+      tl.from("#scene-3-result .anim", { opacity: 0, y: 56, scale: 0.9, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 6.9);
+      tl.fromTo("#scene-4-outro .scene-fill", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "none" }, 8.7);
+      tl.fromTo("#scene-4-outro .bg-depth", { x: -24, y: -16, scale: 1.1 }, { x: 24, y: 16, scale: 1.1, duration: 2.3, ease: "none" }, 8.7);
+      tl.from("#scene-4-outro .anim", { opacity: 0, y: 56, scale: 0.9, duration: 0.6, stagger: 0.1, ease: "power3.out" }, 9);
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
