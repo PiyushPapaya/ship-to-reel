@@ -1,0 +1,15 @@
+{
+  "tempo": { "pace": "slow", "beat_sync": true, "energy_curve": "wave" },
+  "beats": [
+    { "type": "hook", "dur": { "min": 2, "max": 4 }, "slot": { "line": "{{hook_line}}" } },
+    { "type": "context", "dur": { "min": 4, "max": 7 }, "slot": { "title": "{{context_title}}", "body": "{{context_body}}" } },
+    { "type": "feature", "dur": { "min": 4, "max": 6 }, "slot": { "title": "{{feature1_title}}", "body": "{{feature1_body}}" } },
+    { "type": "feature", "dur": { "min": 4, "max": 6 }, "slot": { "title": "{{feature2_title}}", "body": "{{feature2_body}}" } },
+    { "type": "flow", "range": { "min": 2, "max": 6 }, "dur": { "min": 5, "max": 9 }, "slot": { "title": "How it works", "items": "{{steps}}" } },
+    { "type": "comparison", "dur": { "min": 4, "max": 6 }, "slot": { "items": ["{{comparison_before}}", "{{comparison_after}}"] } },
+    { "type": "result", "dur": { "min": 3, "max": 5 }, "slot": { "metric": "{{stat_metric}}", "sub": "{{stat_sub}}" } },
+    { "type": "quote", "dur": { "min": 3, "max": 5 }, "slot": { "title": "{{quote_body}}", "body": "{{quote_attribution}}" } },
+    { "type": "cta", "dur": { "min": 2, "max": 4 }, "slot": { "title": "{{cta_line}}", "body": "{{cta_handle}}" } },
+    { "type": "outro", "slot": {} }
+  ]
+}

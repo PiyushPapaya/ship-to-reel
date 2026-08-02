@@ -1,0 +1,11 @@
+{
+  "tempo": { "pace": "medium", "beat_sync": true, "energy_curve": "build" },
+  "beats": [
+    { "type": "hook", "dur": { "min": 1.5, "max": 3 }, "slot": { "line": "{{release_line}}" } },
+    { "type": "context", "dur": { "min": 2.5, "max": 4 }, "slot": { "title": "{{release_title}}", "body": "{{release_summary}}" } },
+    { "type": "feature", "dur": { "min": 3, "max": 5 }, "slot": { "title": "{{feature_title}}", "body": "{{feature_body}}" } },
+    { "type": "flow", "range": { "min": 2, "max": 4 }, "dur": { "min": 3, "max": 6 }, "slot": { "title": "What's new", "items": "{{highlights}}" } },
+    { "type": "result", "dur": { "min": 2, "max": 3.5 }, "slot": { "metric": "{{stat_metric}}", "sub": "{{stat_sub}}" } },
+    { "type": "outro", "slot": {} }
+  ]
+}

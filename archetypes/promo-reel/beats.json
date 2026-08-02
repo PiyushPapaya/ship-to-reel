@@ -1,0 +1,10 @@
+{
+  "tempo": { "pace": "fast", "beat_sync": true, "energy_curve": "build" },
+  "beats": [
+    { "type": "hook", "dur": { "min": 1.5, "max": 2.5 }, "slot": { "line": "{{promo_line}}" } },
+    { "type": "feature", "dur": { "min": 2.5, "max": 4 }, "slot": { "title": "{{feature_title}}", "body": "{{feature_body}}" } },
+    { "type": "comparison", "dur": { "min": 2.5, "max": 4 }, "slot": { "items": ["{{comparison_before}}", "{{comparison_after}}"] } },
+    { "type": "cta", "dur": { "min": 1.5, "max": 3 }, "slot": { "title": "{{cta_line}}", "body": "{{cta_handle}}" } },
+    { "type": "outro", "slot": {} }
+  ]
+}
