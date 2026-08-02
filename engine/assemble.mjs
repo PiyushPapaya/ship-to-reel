@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join, resolve, relative } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import { renderScene } from "./scenes.mjs";
+import { snapBoundariesToBeat } from "./beat-sync.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const readText = (p) => readFileSync(join(root, p), "utf8");
@@ -153,6 +154,28 @@ export function assemble(specPath, outDir) {
     if (narration?.duration) return round1(Math.max(base, narration.duration + 0.4));
     return base;
   });
+
+  // ROADMAP-NEXT.md 2.1 — beat-sync: engine/music-bed.mjs writes <outDir>/music/
+  // manifest.json (bpm of the resolved bed). When tempo.beat_sync is on and a bed
+  // was resolved, snap the cumulative scene-cut boundaries to the beat grid —
+  // never below a beat's narration-length floor, so a snap can never cut off
+  // spoken narration (same floor already used above for the pace-based duration).
+  const musicManifestPath = join(resolve(outDir), "music", "manifest.json");
+  let bgm = null;
+  if (existsSync(musicManifestPath)) {
+    try { bgm = JSON.parse(readFileSync(musicManifestPath, "utf8")); } catch { bgm = null; }
+  }
+  if (tempo?.beat_sync === true && bgm?.bpm) {
+    const rawBoundaries = [0];
+    for (const d of durs) rawBoundaries.push(round1(rawBoundaries[rawBoundaries.length - 1] + d));
+    const floors = durs.map((_, i) => {
+      const narration = narrationByBeat?.get(i);
+      return narration?.duration ? round1(narration.duration + 0.4) : 0;
+    });
+    const snapped = snapBoundariesToBeat(rawBoundaries, bgm.bpm, floors);
+    for (let i = 0; i < durs.length; i++) durs[i] = round1(snapped[i + 1] - snapped[i]);
+  }
+
   let t = 0;
   const clips = [];
   const tweens = [];
@@ -272,6 +295,17 @@ export function assemble(specPath, outDir) {
     t = start + dur;
   });
   const total = round1(t);
+
+  // ROADMAP-NEXT.md 2.1 — the resolved music bed plays under the whole reel on
+  // its own dedicated track (distinct from BROLL_TRACK_BASE and any per-beat
+  // narration track) so it never collides with per-beat media. Quiet by design
+  // (data-volume 0.16) — narration must always read clearly over it.
+  const BGM_TRACK_INDEX = 30;
+  if (bgm?.path) {
+    clips.push(
+      `      <audio id="bgm" class="clip" src="${bgm.path}" data-start="0" data-duration="${total}" data-track-index="${BGM_TRACK_INDEX}" data-volume="0.16" loop></audio>`
+    );
+  }
 
   const wm = channel.watermark ?? {};
   const safe = channel.safe_areas ?? {};
