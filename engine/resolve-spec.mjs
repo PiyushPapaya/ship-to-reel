@@ -74,7 +74,16 @@ export function resolveSpec({ archetype, brandSlug, tokens, format, pace, beatSy
   const beats = fillTemplate(template.beats, tokens);
 
   const pr = tokens.pr ?? {};
+  // ROADMAP-NEXT 3.2: tokens.source (written by collect.mjs's github_pr/url/brief
+  // collectors) is now the primary way to know a spec's source kind+ref. Older
+  // tokens files predating this change (e.g. an on-disk build/tokens.json from
+  // before this pass) have no `source` field, so fall back to the old
+  // pr-owner-derived github_pr behavior for backward compatibility.
+  const tokenSource = tokens.source ?? {};
   const day = new Date().toISOString().slice(0, 10);
+
+  const kind = tokenSource.kind ?? sourceKind;
+  const ref = tokenSource.ref ?? (pr.owner ? `${pr.owner}/${pr.repo}#${pr.number}` : undefined);
 
   const spec = {
     meta: {
@@ -92,8 +101,8 @@ export function resolveSpec({ archetype, brandSlug, tokens, format, pace, beatSy
       energy_curve: energyCurve ?? template.tempo?.energy_curve ?? "flat",
     },
     source: {
-      kind: sourceKind,
-      ref: pr.owner ? `${pr.owner}/${pr.repo}#${pr.number}` : undefined,
+      kind,
+      ref,
       capture: capture ?? false,
     },
     beats,
