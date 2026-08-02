@@ -124,6 +124,30 @@ node engine/resolve-spec.mjs --brand projekt-a --archetype bugfix-reel
 # → then assemble → seam-gate → render → quality-check as above
 ```
 
+### Unified CLI (`bin/reel.mjs`)
+
+Every script above has its own argv convention (`assemble` takes a dir, `seam-gate`
+takes a file, `distribute` takes two file paths, ...) — that's still true and every
+command above still works exactly as documented. `bin/reel.mjs` is an additive thin
+dispatcher (ROADMAP-NEXT.md Tier 4.1) that normalizes all of them to "primary
+positional arg = one project/build dir", translating that into whatever the
+underlying script actually expects, and passing any extra flags straight through:
+
+```bash
+node bin/reel.mjs assemble       build/proof examples/reel-spec.example.json
+node bin/reel.mjs seam-gate      build/proof            # resolves to build/proof/index.html
+node bin/reel.mjs render         build/proof
+node bin/reel.mjs quality-check  build/proof
+node bin/reel.mjs score-frames   build/proof            # resolves to build/proof/quality/frames
+
+# or the combined pipeline in one call: assemble -> seam-gate -> align-captions -> render
+node bin/reel.mjs build build/proof examples/reel-spec.example.json
+```
+
+Also available as `npm run reel -- <cmd> [dir] [...args]` and, once installed, `npx reel <cmd> [dir]`
+(see the `bin`/`scripts` entries in `package.json`). Run `node bin/reel.mjs --help` for
+the full command list.
+
 `npm run validate` runs the schema gate (7/7). See `package.json` scripts for shortcuts
 (`assemble`, `render`, `quality-check`, `distribution-copy`, …).
 
@@ -155,6 +179,7 @@ channel.json              Layer A: your channel identity
 brands/<slug>/            Layer B: brand.json + voice.md per project (projekt-a, projekt-b)
 archetypes/bugfix-reel/   story as data: intent.md + beats.json
 templates/_shell/         master-timeline skeleton + watermark + outro + brand-token CSS
+bin/reel.mjs               unified CLI dispatcher — one project dir for every subcommand (Tier 4.1)
 engine/
   validate.mjs            schema + range gate
   collect.mjs             gh CLI → source tokens (argv array, no shell injection)
