@@ -90,11 +90,18 @@ jobs:
           REEL_WORKERS: 1
         run: node engine/render.mjs build/ build/reel.mp4
 
-      # Functional gate only (PLAN §5) — the aesthetic pass needs a human/agent
-      # scoring `--scores` file (engine/quality-check.mjs), which CI can't supply.
-      - name: Quality check (functional gate)
+      # ROADMAP-NEXT.md 4.4: --auto wires engine/score-frames.mjs's vision-model
+      # scorer into the gate, so a genuinely flat render now fails CI, not just
+      # a functional check. If ANTHROPIC_API_KEY isn't configured as a repo
+      # secret, --auto degrades to the same "pending" aesthetic state as before
+      # this change (build still succeeds on functional-only) — same
+      # missing-secret degrade discipline as the Slack notify step below, never
+      # a hard failure for a repo that hasn't configured the key yet.
+      - name: Quality check (functional + auto-scored aesthetic gate)
         if: github.event_name == 'pull_request'
-        run: node engine/quality-check.mjs build/ build/reel.mp4
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node engine/quality-check.mjs build/ build/reel.mp4 --auto
 
       - name: Upload reel.mp4 as artifact
         if: github.event_name == 'pull_request'
